@@ -1,6 +1,7 @@
 """kedro-mlops file for ensuring the package is executable
 as `kedro-mlops` and `python -m kedro_mlops`
 """
+
 import importlib
 from pathlib import Path
 
