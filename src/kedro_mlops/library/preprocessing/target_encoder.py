@@ -87,9 +87,9 @@ class TargetEncoder(BaseEstimator):
         self.weight = weight
         self.imputation_strategy = imputation_strategy
 
-        self._mapping = {}  # placeholder for fitted output
+        self.mapping_ = {}  # placeholder for fitted output
         # placeholder for the global incidence of the data used for fitting
-        self._global_mean = None
+        self.global_mean_ = None
 
     def fit(
         self, data: pl.LazyFrame | pl.DataFrame, column_names: list, target_column: str
@@ -113,7 +113,7 @@ class TargetEncoder(BaseEstimator):
 
         stats = stats.to_dict(as_series=False)
 
-        self._global_mean = stats["sum"][0] / stats["count"][0]
+        self.global_mean_ = stats["sum"][0] / stats["count"][0]
 
         cname_list = [cname for cname in column_names if cname in data.columns]
 
@@ -125,7 +125,7 @@ class TargetEncoder(BaseEstimator):
                     cname=pl.lit(cname),
                     incidence=(
                         pl.col("count") * pl.col("mean")
-                        + self.weight * self._global_mean
+                        + self.weight * self.global_mean_
                     )
                     / (pl.col("count") + self.weight),
                 )
@@ -141,10 +141,10 @@ class TargetEncoder(BaseEstimator):
         # unpack result in a mapping to make it easier to do the transform step
         # efficiently
         for row in res.iter_rows(named=True):
-            if row["cname"] in self._mapping:
-                self._mapping[row["cname"]].update({row["value"]: row["incidence"]})
+            if row["cname"] in self.mapping_:
+                self.mapping_[row["cname"]].update({row["value"]: row["incidence"]})
             else:
-                self._mapping[row["cname"]] = {row["value"]: row["incidence"]}
+                self.mapping_[row["cname"]] = {row["value"]: row["incidence"]}
 
     def transform(
         self, data: pl.LazyFrame | pl.DataFrame
@@ -170,7 +170,7 @@ class TargetEncoder(BaseEstimator):
             Exception when TargetEncoder was not fitted before calling this
             method.
         """
-        if (len(self._mapping) == 0) or (self._global_mean is None):
+        if (len(self.mapping_) == 0) or (self.global_mean_ is None):
             msg = (
                 "This {} instance is not fitted yet. Call 'fit' with "
                 "appropriate arguments before using this method."
@@ -180,11 +180,11 @@ class TargetEncoder(BaseEstimator):
         data = data.with_columns(
             pl.col(cname)
             .replace(
-                self._mapping[cname],
-                default=self._get_impute_value(list(self._mapping[cname].values())),
+                self.mapping_[cname],
+                default=self._get_impute_value(list(self.mapping_[cname].values())),
             )
             .alias(self._clean_column_name(cname))
-            for cname in self._mapping
+            for cname in self.mapping_
         )
 
         return data
@@ -207,7 +207,7 @@ class TargetEncoder(BaseEstimator):
         # in missing values, which should be replaced according to the
         # configured imputation strategy:
         if self.imputation_strategy == "mean":
-            return self._global_mean
+            return self.global_mean_
         elif self.imputation_strategy == "min":
             return min(incidences)
         elif self.imputation_strategy == "max":

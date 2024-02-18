@@ -45,7 +45,7 @@ class TestTargetEncoder:  # noqa: D101
             "neutral": 0.50000,
             "positive": 0.666667,
         }
-        actual = encoder._mapping["variable"]
+        actual = encoder.mapping_["variable"]
 
         assert actual == pytest.approx(expected, rel=1e-3, abs=1e-3)
 
@@ -80,7 +80,7 @@ class TestTargetEncoder:  # noqa: D101
             "positive": 4.500000,
         }
 
-        actual = encoder._mapping["variable"]
+        actual = encoder.mapping_["variable"]
 
         assert actual == pytest.approx(expected, rel=1e-3, abs=1e-3)
 
