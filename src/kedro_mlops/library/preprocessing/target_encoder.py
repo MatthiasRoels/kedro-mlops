@@ -135,7 +135,7 @@ class TargetEncoder(BaseEstimator):
             how="diagonal",
         )
 
-        if isinstance(stats, pl.LazyFrame):
+        if isinstance(res, pl.LazyFrame):
             res = res.collect()
 
         # unpack result in a mapping to make it easier to do the transform step

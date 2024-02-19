@@ -35,5 +35,6 @@ def project_context(config_loader):
 # functionality
 class TestProjectContext:
     """Test class for Project context"""
+
     def test_project_path(self, project_context):
         assert project_context.project_path == Path.cwd()
