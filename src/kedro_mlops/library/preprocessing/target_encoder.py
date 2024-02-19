@@ -8,7 +8,9 @@ log = logging.getLogger(__name__)
 
 
 class TargetEncoder(BaseEstimator):
-    """Target encoding for categorical features, inspired by
+    """Target encoding for categorical features
+
+    This was inspired by
     http://contrib.scikit-learn.org/category_encoders/targetencoder.html.
 
     Replace each value of the categorical feature with the average of the
@@ -51,9 +53,6 @@ class TargetEncoder(BaseEstimator):
 
         Ex: By taking the mean strategy the mean of the known encoded variables
         is computed and the missing encoded values would be imputed with this value.
-
-
-
     weight : float
         Smoothing parameter (non-negative). The higher the value of the
         parameter, the bigger the contribution of the overall mean of targets
@@ -189,6 +188,28 @@ class TargetEncoder(BaseEstimator):
 
         return data
 
+    def fit_transform(
+        self, data: pl.LazyFrame | pl.DataFrame, column_names: list, target_column: str
+    ) -> pl.LazyFrame | pl.DataFrame:
+        """Fit the encoder and transform the data.
+
+        Parameters
+        ----------
+        data : pd.DataFrame
+            Data to be encoded.
+        column_names : list
+            Columns of data to be encoded.
+        target_column : str
+            Column name of the target.
+
+        Returns
+        -------
+        pd.DataFrame
+            Data with additional columns, holding the target-encoded variables.
+        """
+        self.fit(data, column_names, target_column)
+        return self.transform(data)
+
     def _get_impute_value(self, incidences: list) -> float:
         """Impute missing data based on the given strategy.
 
@@ -212,28 +233,6 @@ class TargetEncoder(BaseEstimator):
             return min(incidences)
         elif self.imputation_strategy == "max":
             return max(incidences)
-
-    def fit_transform(
-        self, data: pl.LazyFrame | pl.DataFrame, column_names: list, target_column: str
-    ) -> pl.LazyFrame | pl.DataFrame:
-        """Fit the encoder and transform the data.
-
-        Parameters
-        ----------
-        data : pd.DataFrame
-            Data to be encoded.
-        column_names : list
-            Columns of data to be encoded.
-        target_column : str
-            Column name of the target.
-
-        Returns
-        -------
-        pd.DataFrame
-            Data with additional columns, holding the target-encoded variables.
-        """
-        self.fit(data, column_names, target_column)
-        return self.transform(data, column_names)
 
     @staticmethod
     def _clean_column_name(column_name: str) -> str:
