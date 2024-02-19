@@ -100,9 +100,10 @@ class TargetEncoder(BaseEstimator):
         X : pl.DataFrame | pl.LazyFrame
             train data used to compute the mapping to encode the categorical
             variables with.
-        y: pl.DataFrame | pl.LazyFrame
-            series containing the targets for each observation. Targets can be
-            continuous or binary
+        column_names : list
+            Columns of data to be encoded.
+        target_column : str
+            Column name of the target.
         """
         # compute global mean (target incidence in case of binary target)
         stats = data.select(pl.sum(target_column).alias("sum"), pl.count())
@@ -183,7 +184,7 @@ class TargetEncoder(BaseEstimator):
                 default=self._get_impute_value(list(self.mapping_[cname].values())),
             )
             .alias(self._clean_column_name(cname))
-            for cname in self.mapping_
+            for cname in self.mapping_ if cname in data.columns
         )
 
         return data
