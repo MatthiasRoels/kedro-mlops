@@ -184,7 +184,8 @@ class TargetEncoder(BaseEstimator):
                 default=self._get_impute_value(list(self.mapping_[cname].values())),
             )
             .alias(self._clean_column_name(cname))
-            for cname in self.mapping_ if cname in data.columns
+            for cname in self.mapping_
+            if cname in data.columns
         )
 
         return data
