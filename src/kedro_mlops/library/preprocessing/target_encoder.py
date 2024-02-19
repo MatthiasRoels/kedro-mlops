@@ -106,7 +106,7 @@ class TargetEncoder(BaseEstimator):
             Column name of the target.
         """
         # compute global mean (target incidence in case of binary target)
-        stats = data.select(pl.sum(target_column).alias("sum"), pl.count())
+        stats = data.select(pl.sum(target_column).alias("sum"), pl.len().alias("count"))
 
         if isinstance(stats, pl.LazyFrame):
             stats = stats.collect()
