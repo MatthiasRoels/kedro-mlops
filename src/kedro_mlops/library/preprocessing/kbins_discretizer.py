@@ -1,5 +1,4 @@
 # standard lib imports
-import logging
 import numbers
 import operator
 from itertools import pairwise
@@ -9,8 +8,6 @@ import numpy as np
 import polars as pl
 from sklearn.base import BaseEstimator
 from sklearn.exceptions import NotFittedError
-
-log = logging.getLogger(__name__)
 
 
 class KBinsDiscretizer(BaseEstimator):
@@ -25,7 +22,9 @@ class KBinsDiscretizer(BaseEstimator):
     https://github.com/scikit-learn/scikit-learn/blob/master/sklearn/preprocessing/_discretization.py,
     though it is purely written in polars instead of numpy because it is more intuitive.
     It also includes some custom modifications to align it with our methodology.
-    See the README of the GitHub repository for more background information.
+    For example, we fill missing values with a category ``Missing``. Furthermore, we
+    have an option to adapt the number of bins requested based on the number of Null/Nan
+    values in a column.
 
     Attributes
     ----------
@@ -62,10 +61,10 @@ class KBinsDiscretizer(BaseEstimator):
         strategy: str = "quantile",
         left_closed: bool = False,
         auto_adapt_bins: bool = False,
-        starting_precision: int = 0,
+        starting_precision: int = 1,
         label_format: str | None = None,
     ):
-
+        """Constructor for KBinsDiscretizer"""
         # validate number of bins
         self._validate_n_bins(n_bins)
 
@@ -124,45 +123,6 @@ class KBinsDiscretizer(BaseEstimator):
         else:
             self._fit_with_quantile_strategy(data, n_bins_by_column)
 
-    def _fit_with_uniform_strategy(
-        self, data: pl.LazyFrame | pl.DataFrame, n_bins_by_column: dict
-    ):
-        min_max = data.select(
-            pl.all().min().name.suffix("_min"), pl.all().max().name.suffix("_max")
-        )
-
-        if isinstance(min_max, pl.LazyFrame):
-            min_max = min_max.collect()
-
-        min_max_dict = min_max.to_dict(as_series=False)
-
-        for cname in n_bins_by_column:
-            bin_edges = list(
-                np.linspace(
-                    min_max_dict[f"{cname}_min"],
-                    min_max_dict[f"{cname}_max"],
-                    n_bins_by_column[cname] + 1,
-                )
-            )
-
-            precision = self._compute_minimal_precision_of_bin_edges(bin_edges)
-
-            # drop first (resp. last) element from bin_edges as we will always use
-            # smaller than (resp. bigger than) the second (resp. second to last) element
-            self.bin_edges_by_column_[cname] = [
-                round(edge, precision) for edge in bin_edges
-            ][1:-1]
-
-            # create bin labels
-            self._bin_labels_by_column[cname] = self._create_bin_labels_from_edges(
-                bin_edges
-            )
-
-    def _fit_with_quantile_strategy(
-        self, data: pl.LazyFrame | pl.DataFrame, n_bins_by_column: dict
-    ):
-        pass
-
     def transform(
         self, data: pl.LazyFrame | pl.DataFrame
     ) -> pl.LazyFrame | pl.DataFrame:
@@ -179,7 +139,7 @@ class KBinsDiscretizer(BaseEstimator):
         pl.LazyFrame | pl.DataFrame
             data with discretized variables
         """
-        if len(self.bins_by_column_) == 0:
+        if len(self.bin_edges_by_column_) == 0:
             msg = (
                 "{} instance is not fitted yet. Call 'fit' with "
                 "appropriate arguments before using this method."
@@ -188,18 +148,18 @@ class KBinsDiscretizer(BaseEstimator):
             raise NotFittedError(msg.format(self.__class__.__name__))
 
         def cut(cname: str, edges: list, labels: list) -> pl.Expr:
-
+            """Custom implementation for the experimental pl.cut expression"""
             labels = [pl.lit(x, pl.Categorical) for x in labels]
 
-            operator = operator.le
+            operation = operator.le
             if self.left_closed:
-                operator = operator.lt
+                operation = operator.lt
 
             expr = pl.when(pl.col(cname).is_null() | pl.col(cname).is_nan()).then(
                 pl.lit("Missing", pl.Categorical)
             )
             for edge, label in zip(edges, labels[:-1]):
-                expr = expr.when(operator(pl.col(cname), edge)).then(label)
+                expr = expr.when(operation(pl.col(cname), edge)).then(label)
             expr = expr.otherwise(labels[-1])
 
             return expr
@@ -236,6 +196,104 @@ class KBinsDiscretizer(BaseEstimator):
         self.fit(data, column_names)
         return self.transform(data, column_names)
 
+    def _fit_with_uniform_strategy(
+        self, data: pl.LazyFrame | pl.DataFrame, n_bins_by_column: dict
+    ):
+        """Fits the estimator using the uniform strategy.
+
+        Parameters
+        ----------
+        data : pl.LazyFrame | pl.DataFrame
+            Data to be discretized
+        n_bins_by_column : dict
+            mapping of column name to number of bins for that particular column
+
+        """
+        min_max = data.select(
+            pl.all().min().name.suffix("_min"), pl.all().max().name.suffix("_max")
+        )
+
+        if isinstance(min_max, pl.LazyFrame):
+            min_max = min_max.collect()
+
+        min_max_dict = min_max.to_dict(as_series=False)
+
+        for cname in n_bins_by_column:
+            bin_edges = list(
+                np.linspace(
+                    min_max_dict[f"{cname}_min"][0],
+                    min_max_dict[f"{cname}_max"][0],
+                    n_bins_by_column[cname] + 1,
+                )
+            )
+
+            precision = self._compute_minimal_precision_of_bin_edges(bin_edges)
+
+            # drop first (resp. last) element from bin_edges as we will always use
+            # smaller than (resp. bigger than) the second (resp. second to last) element
+            self.bin_edges_by_column_[cname] = [
+                round(edge, precision) for edge in bin_edges
+            ][1:-1]
+
+            # create bin labels
+            self.bin_labels_by_column_[cname] = self._create_bin_labels_from_edges(
+                self.bin_edges_by_column_[cname]
+            )
+
+    def _fit_with_quantile_strategy(
+        self, data: pl.LazyFrame | pl.DataFrame, n_bins_by_column: dict
+    ):
+        """Fits the estimator using the quantile strategy.
+
+        Parameters
+        ----------
+        data : pl.LazyFrame | pl.DataFrame
+            Data to be discretized
+        n_bins_by_column : dict
+            mapping of column name to number of bins for that particular column
+
+        """
+        # In the list of quantiles to compute, we exclude edges as these are the min/max
+        # of the column which we won't use since we will handle edges differently
+        res = pl.concat(
+            [
+                data.select(
+                    cname=pl.lit(cname),
+                    bin_edges=pl.concat_list(
+                        [
+                            pl.col(cname).quantile(q, interpolation="linear")
+                            for q in np.linspace(0, 1, n_bins_by_column[cname] + 1)[
+                                1:-1
+                            ]
+                        ]
+                    ),
+                )
+                for cname in n_bins_by_column
+            ],
+        )
+
+        if isinstance(res, pl.LazyFrame):
+            res = res.collect()
+
+        # list of dicts!
+        bin_edges_dict = res.to_dict(as_series=False)
+
+        for cname, bin_edges_raw in zip(
+            bin_edges_dict["cname"], bin_edges_dict["bin_edges"]
+        ):
+            bin_edges = sorted(list(set(bin_edges_raw)))
+
+            precision = self._compute_minimal_precision_of_bin_edges(bin_edges)
+
+            self.bin_edges_by_column_[cname] = [
+                round(edge, precision) for edge in bin_edges
+            ]
+
+            # create bin labels
+            self.bin_labels_by_column_[cname] = self._create_bin_labels_from_edges(
+                self.bin_edges_by_column_[cname]
+            )
+
     def _validate_n_bins(self, n_bins: int):
         """Check if ``n_bins`` is of the proper type and if it is bigger
         than two
@@ -264,7 +322,7 @@ class KBinsDiscretizer(BaseEstimator):
     def _compute_minimal_precision_of_bin_edges(self, bin_edges: list) -> int:
         """Compute the minimal precision of a list of bin_edges so that we end
         up with a strictly ascending sequence of different numbers even when rounded.
-        The starting_precision attribute will be used as the initial precision.
+        The starting_precision attribute will be used as the initial precisio1.
         In case of a negative starting_precision, the bin edges will be rounded
         to the nearest 10, 100, ... (e.g. 5.55 -> 10, 246 -> 200, ...)
 
@@ -292,34 +350,6 @@ class KBinsDiscretizer(BaseEstimator):
                 # return to break out of while loop
                 return precision
 
-    def _compute_bins_from_edges(self, bin_edges: list) -> list[tuple]:
-        """Given a list of bin edges, compute the minimal precision for which
-        we can make meaningful bins and make those bins
-
-        Parameters
-        ----------
-        bin_edges : list
-            The bin edges for binning a continuous variable
-
-        Returns
-        -------
-        List[tuple]
-            A (sorted) list of bins as tuples
-        """
-        # compute the minimal precision of the bin_edges
-        # this can be a negative number, which then
-        # rounds numbers to the nearest 10, 100, ...
-        precision = self._compute_minimal_precision_of_bin_edges(bin_edges)
-
-        bins = []
-        for a, b in pairwise(bin_edges):
-            fmt_a = round(a, precision)
-            fmt_b = round(b, precision)
-
-            bins.append((fmt_a, fmt_b))
-
-        return bins
-
     def _create_bin_labels_from_edges(self, bin_edges: list) -> list:
         """Given a list of bin edges, create a list containing the label for each bin.
 
@@ -335,27 +365,32 @@ class KBinsDiscretizer(BaseEstimator):
         list
             list of (formatted) bin labels
         """
-        label_format = self._label_format if self._label_format else "({}, {}]"
-        bin_labels = [
-            label_format.format(interval[0], interval[1])
-            for interval in zip(bin_edges, bin_edges[1:])
-        ]
-
-        # Format first and last bin with -inf resp. inf.
-        if self._label_format is None:
+        label_format = self._label_format
+        if label_format is None:
+            # Format first and last bin with -inf resp. inf.
+            # and properly set label format!
             if self.left_closed:
+                first_label = f"(-inf, {bin_edges[0]})"
+                last_label = f"[{bin_edges[-1]}, inf)"
+
+                label_format = "[{}, {})"
+            else:
                 first_label = f"(-inf, {bin_edges[0]}]"
                 last_label = f"({bin_edges[-1]}, inf)"
-            else:
-                first_label = f"(-inf, {bin_edges[0]})"
-                last_label = f"[{bin_edges[-1]}, inf]"
-        # Format first and last bin as < x and > y resp.
+
+                label_format = "({}, {}]"
         else:  # noqa: PLR5501
+            # Format first and last bin as < x and > y resp.
             if self.left_closed:
                 first_label = f"< {bin_edges[0]}"
                 last_label = f">= {bin_edges[-1]}"
             else:
                 first_label = f"<= {bin_edges[0]}"
                 last_label = f"> {bin_edges[-1]}"
+
+        bin_labels = [
+            label_format.format(interval[0], interval[1])
+            for interval in zip(bin_edges, bin_edges[1:])
+        ]
 
         return [first_label, *bin_labels, last_label]

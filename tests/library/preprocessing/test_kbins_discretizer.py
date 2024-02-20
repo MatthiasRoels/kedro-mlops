@@ -1,7 +1,6 @@
 from contextlib import contextmanager
 
-import numpy as np
-import pandas as pd
+import polars as pl
 import pytest
 
 from src.kedro_mlops.library.preprocessing.kbins_discretizer import KBinsDiscretizer
@@ -12,281 +11,194 @@ def does_not_raise():
     yield
 
 
-class TestKBinsDiscretizer:  # noqa: D101
+@pytest.mark.parametrize(
+    "strategy, expectation",
+    [("trees", pytest.raises(ValueError)), ("quantile", does_not_raise())],
+)
+def test_fit_exception(strategy, expectation):
+    with expectation:
+        _ = KBinsDiscretizer(strategy=strategy)
 
-    # ---------------- Test for public methods ----------------
-    def test_attributes_to_dict(self):
 
-        discretizer = KBinsDiscretizer()
+@pytest.mark.parametrize(
+    "use_lazy_frame, auto_adapt_bins",
+    [(False, False), (False, True), (True, True)],
+    ids=["eager_default", "eager_auto_adapt_bins", "lazy_auto_adapt_bins"],
+)
+def test_fit(use_lazy_frame: bool, auto_adapt_bins: bool):
+    data = pl.DataFrame({"variable": [*list(range(10)), *([None] * 5)]})
 
-        bins = [(0.0, 3.0), (3.0, 6.0), (6.0, 9.0)]
-        discretizer._bins_by_column = {"variable": bins}
+    if use_lazy_frame:
+        data = data.lazy()
 
-        actual = discretizer.attributes_to_dict()
-
-        expected = {
-            "n_bins": 10,
-            "strategy": "quantile",
-            "closed": "right",
-            "auto_adapt_bins": False,
-            "starting_precision": 0,
-            "label_format": "{} - {}",
-            "change_endpoint_format": False,
-            "_bins_by_column": {"variable": [[0.0, 3.0], [3.0, 6.0], [6.0, 9.0]]},
-        }
-
-        assert actual == expected
-
-    @pytest.mark.parametrize(
-        "attribute",
-        [
-            "n_bins",
-            "strategy",
-            "closed",
-            "auto_adapt_bins",
-            "starting_precision",
-            "label_format",
-            "change_endpoint_format",
-            "_bins_by_column",
-        ],
+    discretizer = KBinsDiscretizer(
+        n_bins=3,
+        strategy="uniform",
+        auto_adapt_bins=auto_adapt_bins,
     )
-    def test_set_attributes_from_dict(self, attribute):
 
-        discretizer = KBinsDiscretizer()
+    discretizer.fit(data, ["variable"])
 
-        params = {
-            "n_bins": 5,
-            "strategy": "uniform",
-            "closed": "left",
-            "auto_adapt_bins": True,
-            "starting_precision": 1,
-            "label_format": "[,)",
-            "change_endpoint_format": True,
-            "_bins_by_column": {"variable": [[0.0, 3.0], [3.0, 6.0], [6.0, 9.0]]},
-        }
+    actual_bin_edges = discretizer.bin_edges_by_column_["variable"]
+    expected_bin_edges = [3.0, 6.0]
+    if auto_adapt_bins:
+        expected_bin_edges = [4.5]
 
-        expected = params[attribute]
+    assert actual_bin_edges == expected_bin_edges
 
-        if attribute == "_bins_by_column":
-            # list of list is transformed to a list of tuples
-            # in KBinsDiscretizer!!!
-            expected = {"variable": [(0.0, 3.0), (3.0, 6.0), (6.0, 9.0)]}
+    actual_bin_labels = discretizer.bin_labels_by_column_["variable"]
+    expected_bin_labels = ["(-inf, 3.0]", "(3.0, 6.0]", "(6.0, inf)"]
+    if auto_adapt_bins:
+        expected_bin_labels = ["(-inf, 4.5]", "(4.5, inf)"]
 
-        discretizer.set_attributes_from_dict(params)
+    assert actual_bin_labels == expected_bin_labels
 
-        actual = getattr(discretizer, attribute)
 
-        assert actual == expected
+@pytest.mark.parametrize(
+    "use_lazy_frame",
+    [(False,), (True,)],
+    ids=["eager", "lazy"],
+)
+def test_transform(use_lazy_frame: bool):
+    data = pl.DataFrame({"variable": list(range(10))})
 
-    # no further tests here as this is just a wrapper around _fit_column!
-    @pytest.mark.parametrize(
-        "strategy, expectation",
-        [("trees", pytest.raises(ValueError)), ("quantile", does_not_raise())],
-    )
-    def test_fit_exception(self, strategy, expectation):
-        discretizer = KBinsDiscretizer(strategy=strategy)
+    if use_lazy_frame:
+        data = data.lazy()
 
-        data = pd.DataFrame({"variable": [*list(range(10)), np.nan]})
+    discretizer = KBinsDiscretizer(n_bins=2, strategy="uniform")
 
-        with expectation:
-            discretizer.fit(data, ["variable"])
+    discretizer.fit(data, ["variable"])
 
-    # no further tests here as this is just a wrapper around _transform_column!
-    @pytest.mark.parametrize(
-        "scenario, expectation",
-        [
-            ("raise", pytest.raises(ValueError)),
-            ("regular_test", does_not_raise()),
-            ("constant_data", does_not_raise()),
-        ],
-    )
-    def test_transform(self, scenario, expectation):
+    tf_data = discretizer.transform(data)
 
-        discretizer = KBinsDiscretizer(n_bins=3, strategy="uniform")
+    assert tf_data.dtypes == [pl.Categorical]
 
-        data = pd.DataFrame({"variable": ([1] * 10)})
-        expected = data.copy()
+    if use_lazy_frame:
+        tf_data = tf_data.collect()
 
-        if scenario == "regular_test":
-            # overwrite data and expected with DataFrame containing
-            # a non-constant variable
-            data = pd.DataFrame({"variable": [*list(range(10)), np.nan]})
-            expected = data.copy()
+    actual = tf_data.to_dict(as_series=False)["variable"]
+    expected = [*(["(-inf, 4.5]"] * 5), *(["(4.5, inf)"] * 5)]
 
-            discretizer.fit(data, ["variable"])
+    assert actual == expected
 
-            categories = ["0.0 - 3.0", "3.0 - 6.0", "6.0 - 9.0", "Missing"]
-            expected["variable_bin"] = pd.Categorical(
-                ["0.0 - 3.0"] * 4 + ["3.0 - 6.0"] * 3 + ["6.0 - 9.0"] * 3 + ["Missing"],
-                categories=categories,
-                ordered=True,
-            )
-        elif scenario == "constant_data":
-            discretizer.fit(data, ["variable"])
 
-        with expectation:
-            actual = discretizer.transform(data, ["variable"])
-            pd.testing.assert_frame_equal(actual, expected)
+@pytest.mark.parametrize(
+    "use_lazy_frame, include_missing",
+    [(False, False), (False, True), (True, False), (True, True)],
+    ids=["eager_no_missing", "eager_missing", "lazy_no_missing", "lazy_missing"],
+)
+def test_fit_with_uniform_strategy(use_lazy_frame: bool, include_missing: bool):
+    if include_missing:
+        data = pl.DataFrame({"variable": list(range(10))})
+    else:
+        data = pl.DataFrame({"variable": [*list(range(10)), None]})
 
-    # ---------------- Test for private methods ----------------
-    @pytest.mark.parametrize(
-        "n_bins, expectation",
-        [
-            (1, pytest.raises(ValueError)),
-            (10.5, pytest.raises(ValueError)),
-            (2, does_not_raise()),
-        ],
-    )
-    def test_validate_n_bins_exception(self, n_bins, expectation):
-        with expectation:
-            assert KBinsDiscretizer()._validate_n_bins(n_bins=n_bins) is None
+    if use_lazy_frame:
+        data = data.lazy()
 
-    def test_transform_column(self):
+    n_bins_by_column = {"variable": 3}
 
-        data = pd.DataFrame({"variable": [*list(range(10)), np.nan]})
-        discretizer = KBinsDiscretizer(n_bins=3, strategy="uniform")
+    discretizer = KBinsDiscretizer(n_bins=3, strategy="uniform")
 
-        bins = [(0.0, 3.0), (3.0, 6.0), (6.0, 9.0)]
+    discretizer._fit_with_uniform_strategy(data, n_bins_by_column)
 
-        actual = discretizer._transform_column(data, "variable", bins)
+    actual_bin_edges = discretizer.bin_edges_by_column_["variable"]
+    expected_bin_edges = [3.0, 6.0]
 
-        categories = ["0.0 - 3.0", "3.0 - 6.0", "6.0 - 9.0", "Missing"]
+    assert actual_bin_edges == expected_bin_edges
 
-        expected = pd.DataFrame({"variable": [*list(range(10)), np.nan]})
-        expected["variable_bin"] = pd.Categorical(
-            ["0.0 - 3.0"] * 4 + ["3.0 - 6.0"] * 3 + ["6.0 - 9.0"] * 3 + ["Missing"],
-            categories=categories,
-            ordered=True,
-        )
+    actual_bin_labels = discretizer.bin_labels_by_column_["variable"]
+    expected_bin_labels = ["(-inf, 3.0]", "(3.0, 6.0]", "(6.0, inf)"]
 
-        # assert using pandas testing module
-        pd.testing.assert_frame_equal(actual, expected)
+    assert actual_bin_labels == expected_bin_labels
 
-    @pytest.mark.parametrize(
-        "n_bins, auto_adapt_bins, data, expected",
-        [
-            (
-                4,
-                False,
-                pd.DataFrame({"variable": list(range(11))}),
-                [(0.0, 2.0), (2.0, 5.0), (5.0, 8.0), (8.0, 10.0)],
-            ),
-            (
-                10,
-                True,
-                # ints from 0-10 with 17 nan's
-                pd.DataFrame({"variable": list(range(11)) + ([np.nan] * 17)}),
-                [(0.0, 2.0), (2.0, 5.0), (5.0, 8.0), (8.0, 10.0)],
-            ),
-            (
-                10,
-                False,
-                # almost constant
-                pd.DataFrame({"variable": [0] + ([1] * 100)}),
-                None,
-            ),
-            (2, False, pd.DataFrame({"variable": [5.4, 9.3, np.inf]}), None),
-        ],
-        ids=["regular", "auto_adapt_bins", "two bin edges", "infs"],
-    )
-    def test_fit_column(self, n_bins, auto_adapt_bins, data, expected):
-        discretizer = KBinsDiscretizer(n_bins=n_bins, auto_adapt_bins=auto_adapt_bins)
 
-        actual = discretizer._fit_column(data, column_name="variable")
+@pytest.mark.parametrize(
+    "use_lazy_frame, include_missing",
+    [(False, False), (False, True), (True, False), (True, True)],
+    ids=["eager_no_missing", "eager_missing", "lazy_no_missing", "lazy_missing"],
+)
+def test_fit_with_quantile_strategy(use_lazy_frame: bool, include_missing: bool):
+    if include_missing:
+        data = pl.DataFrame({"variable": list(range(11))})
+    else:
+        data = pl.DataFrame({"variable": [*list(range(11)), None]})
 
-        assert actual == expected
+    if use_lazy_frame:
+        data = data.lazy()
 
-    @pytest.mark.parametrize(
-        "strategy, n_bins, data, expected",
-        [
-            (
-                "quantile",  # strategy
-                4,  # n_bins
-                # data (ints from 0 - 10):
-                pd.DataFrame({"variable": list(range(11))}),
-                [0.0, 2.5, 5, 7.5, 10.0],
-            ),  # expected result
-            (
-                "uniform",  # strategy
-                3,  # n_bins
-                # data (ints from 0 - 9):
-                pd.DataFrame({"variable": list(range(10))}),
-                [0.0, 3.0, 6.0, 9.0],
-            ),
-        ],  # expected result
-        ids=["quantile", "uniform"],
-    )
-    def test_compute_bin_edges(self, strategy, n_bins, data, expected):
+    n_bins_by_column = {"variable": 4}
 
-        discretizer = KBinsDiscretizer(strategy=strategy)
+    discretizer = KBinsDiscretizer(n_bins=4, strategy="quantile", starting_precision=1)
 
-        actual = discretizer._compute_bin_edges(
-            data,
-            column_name="variable",
-            n_bins=n_bins,
-            col_min=data.variable.min(),
-            col_max=data.variable.max(),
-        )
+    discretizer._fit_with_quantile_strategy(data, n_bins_by_column)
 
-        assert actual == expected
+    actual_bin_edges = discretizer.bin_edges_by_column_["variable"]
+    expected_bin_edges = [2.5, 5.0, 7.5]
 
-    @pytest.mark.parametrize(
-        "bin_edges, starting_precision, expected",
-        [
-            ([-10, 0, 1, 2], 1, 1),
-            ([-10, 0, 1, 1.01], 0, 2),
-            ([-10, 0, 1, 1.1], 1, 1),
-            ([-10, 0, 1, 2], -1, 0),
-            ([-10, 0, 10, 21], -1, -1),
-        ],
-        ids=[
-            "less precision",
-            "more precision",
-            "equal precision",
-            "negative start",
-            "round up",
-        ],
-    )
-    def test_compute_minimal_precision_of_bin_edges(
-        self, bin_edges, starting_precision, expected
-    ):
+    assert actual_bin_edges == expected_bin_edges
 
-        discretizer = KBinsDiscretizer(starting_precision=starting_precision)
+    actual_bin_labels = discretizer.bin_labels_by_column_["variable"]
+    expected_bin_labels = ["(-inf, 2.5]", "(2.5, 5.0]", "(5.0, 7.5]", "(7.5, inf)"]
 
-        actual = discretizer._compute_minimal_precision_of_bin_edges(bin_edges)
+    assert actual_bin_labels == expected_bin_labels
 
-        assert actual == expected
 
-    @pytest.mark.parametrize(
-        "bin_edges, expected",
-        [
-            ([0, 1, 1.5, 2], [(0, 1), (1, 1.5), (1.5, 2)]),
-            ([0, 1, 1.5, 3], [(0, 1), (1, 2), (2, 3)]),
-            ([np.inf, 0.0, -np.inf], [(np.inf, 0.0), (0.0, -np.inf)]),
-        ],
-    )
-    def test_compute_bins_from_edges(self, bin_edges, expected):
+@pytest.mark.parametrize(
+    "n_bins, expectation",
+    [
+        (1, pytest.raises(ValueError)),
+        (10.5, pytest.raises(ValueError)),
+        (2, does_not_raise()),
+    ],
+)
+def test_validate_n_bins_exception(n_bins, expectation):
+    with expectation:
+        assert KBinsDiscretizer()._validate_n_bins(n_bins=n_bins) is None
 
-        discretizer = KBinsDiscretizer()
-        actual = discretizer._compute_bins_from_edges(bin_edges)
 
-        assert actual == expected
+@pytest.mark.parametrize(
+    "bin_edges, starting_precision, expected",
+    [
+        ([-10, 0, 1, 2], 1, 1),
+        ([-10, 0, 1, 1.01], 0, 2),
+        ([-10, 0, 1, 1.1], 1, 1),
+        ([-10, 0, 1, 2], -1, 0),
+        ([-10, 0, 10, 21], -1, -1),
+    ],
+    ids=[
+        "less precision",
+        "more precision",
+        "equal precision",
+        "negative start",
+        "round up",
+    ],
+)
+def test_compute_minimal_precision_of_bin_edges(
+    bin_edges, starting_precision, expected
+):
+    discretizer = KBinsDiscretizer(starting_precision=starting_precision)
 
-    @pytest.mark.parametrize(
-        "change_endpoint_format, closed, bins, expected",
-        [
-            (False, "right", [(0, 1), (1, 2), (2, 3)], ["0 - 1", "1 - 2", "2 - 3"]),
-            (True, "right", [(0, 1), (1, 2), (2, 3)], ["<= 1", "1 - 2", "> 2"]),
-            (True, "left", [(0, 1), (1, 2), (2, 3)], ["< 1", "1 - 2", ">= 2"]),
-        ],
-        ids=["standard format", "different endpoints", "different endpoints left"],
-    )
-    def test_create_bin_labels(self, change_endpoint_format, closed, bins, expected):
+    actual = discretizer._compute_minimal_precision_of_bin_edges(bin_edges)
 
-        discretizer = KBinsDiscretizer(
-            closed=closed, change_endpoint_format=change_endpoint_format
-        )
+    assert actual == expected
 
-        actual = discretizer._create_bin_labels(bins)
 
-        assert actual == expected
+@pytest.mark.parametrize(
+    "left_closed, label_format, bin_edges, expected",
+    [
+        (False, None, [1, 2, 3], ["(-inf, 1]", "(1, 2]", "(2, 3]", "(3, inf)"]),
+        (False, "{} - {}", [1, 2, 3], ["<= 1", "1 - 2", "2 - 3", "> 3"]),
+        (True, None, [1, 2, 3], ["(-inf, 1)", "[1, 2)", "[2, 3)", "[3, inf)"]),
+        (True, "{} - {}", [1, 2, 3], ["< 1", "1 - 2", "2 - 3", ">= 3"]),
+    ],
+    ids=["defaults", "other_label_fmt", "left_closed", "left_closed_other_label_fmt"],
+)
+def test_create_bin_labels_from_edges(
+    left_closed: bool, label_format: str, bin_edges: list, expected: list
+):
+    discretizer = KBinsDiscretizer(left_closed=left_closed, label_format=label_format)
+
+    actual = discretizer._create_bin_labels_from_edges(bin_edges)
+
+    assert actual == expected

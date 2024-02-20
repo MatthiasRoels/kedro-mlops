@@ -66,7 +66,7 @@ class TargetEncoder(BaseEstimator):
     valid_imputation_strategies = ("mean", "min", "max")
 
     def __init__(self, weight: float = 0.0, imputation_strategy: str = "mean"):
-
+        """Constructor for TargetEncoder"""
         if weight < 0:
             raise ValueError("The value of weight cannot be smaller than zero.")
         elif imputation_strategy not in self.valid_imputation_strategies:
