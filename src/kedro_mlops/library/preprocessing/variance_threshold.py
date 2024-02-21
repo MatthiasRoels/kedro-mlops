@@ -25,7 +25,7 @@ class VarianceThreshold(BaseEstimator):
     def __init__(self, threshold: float = 0):
         self.threshold = threshold
 
-        self.columns_to_drop_ = []
+        self.columns_to_drop_ = None
 
     def fit(self, data: pl.DataFrame | pl.LazyFrame):
         """Learn empircal variances of the data
@@ -38,19 +38,16 @@ class VarianceThreshold(BaseEstimator):
         data : pl.LazyFrame | pl.DataFrame
             Data from which to compute variances
         """
-        variances = (
-            data.select(
+        variances = data.select(
             pl.col(pl.NUMERIC_DTYPES),
             pl.all().exclude(pl.NUMERIC_DTYPES).rank(method="dense"),
-            )
-            .select(pl.all().var())
-            .transpose(include_header=True)
-        )
+        ).select(pl.all().var())
 
         if isinstance(variances, pl.LazyFrame):
             variances = variances.collect()
 
-        raw = variances.to_dict(as_series=False)
+        # do transpose here as a LazyFrame doesn't have such a method
+        raw = variances.transpose(include_header=True).to_dict(as_series=False)
 
         self.columns_to_drop_ = [
             cname
@@ -73,7 +70,7 @@ class VarianceThreshold(BaseEstimator):
         pl.LazyFrame | pl.DataFrame
             data with only selected features
         """
-        if len(self.columns_to_drop_) == 0:
+        if self.columns_to_drop_ is None:
             msg = (
                 "{} instance is not fitted yet. Call 'fit' with "
                 "appropriate arguments before using this method."

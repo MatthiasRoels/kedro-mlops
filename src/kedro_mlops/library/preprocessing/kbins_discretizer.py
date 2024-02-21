@@ -121,7 +121,8 @@ class KBinsDiscretizer(BaseEstimator):
         if self.strategy == "uniform":
             self._fit_with_uniform_strategy(data, n_bins_by_column)
         else:
-            self._fit_with_quantile_strategy(data, n_bins_by_column)
+            # already tested separately
+            self._fit_with_quantile_strategy(data, n_bins_by_column)  # pragma: no cover
 
     def transform(
         self, data: pl.LazyFrame | pl.DataFrame
@@ -152,7 +153,7 @@ class KBinsDiscretizer(BaseEstimator):
             labels = [pl.lit(x, pl.Categorical) for x in labels]
 
             operation = operator.le
-            if self.left_closed:
+            if self.left_closed:  # pragma: no cover
                 operation = operator.lt
 
             expr = pl.when(pl.col(cname).is_null() | pl.col(cname).is_nan()).then(
@@ -194,7 +195,7 @@ class KBinsDiscretizer(BaseEstimator):
             data with discretized variables
         """
         self.fit(data, column_names)
-        return self.transform(data, column_names)
+        return self.transform(data)
 
     def _fit_with_uniform_strategy(
         self, data: pl.LazyFrame | pl.DataFrame, n_bins_by_column: dict

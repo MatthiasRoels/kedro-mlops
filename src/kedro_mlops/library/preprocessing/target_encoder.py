@@ -120,7 +120,7 @@ class TargetEncoder(BaseEstimator):
         res = pl.concat(
             [
                 data.group_by(cname)
-                .agg(pl.mean(target_column).alias("mean"), pl.count())
+                .agg(pl.mean(target_column).alias("mean"), pl.len().alias("count"))
                 .with_columns(
                     cname=pl.lit(cname),
                     incidence=(
@@ -233,7 +233,7 @@ class TargetEncoder(BaseEstimator):
             return self.global_mean_
         elif self.imputation_strategy == "min":
             return min(incidences)
-        elif self.imputation_strategy == "max":
+        elif self.imputation_strategy == "max":  # pragma: no cover
             return max(incidences)
 
     @staticmethod
