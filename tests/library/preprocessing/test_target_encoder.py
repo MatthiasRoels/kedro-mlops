@@ -127,7 +127,7 @@ def test_target_encoder_constructor_imputation_value_error():
         "linear_regression_eager",
     ],
 )
-def test_target_encoder_fit_binary_classification(
+def test_target_encoder_fit(
     variable: list, target: list, expected: dict, use_lazy_api: bool, request
 ):
     """Test fit method of TargetEncoder.
@@ -152,15 +152,8 @@ def test_target_encoder_fit_binary_classification(
     assert actual == pytest.approx(expected, rel=1e-3, abs=1e-3)
 
 
-def test_target_encoder_transform_when_not_fitted(
-    feat_values_binary_cls, target_binary_cls
-):
-    df = pl.DataFrame(
-        {
-            "variable": feat_values_binary_cls,
-            "target": target_binary_cls,
-        }
-    )
+def test_target_encoder_transform_when_not_fitted():
+    df = pl.DataFrame()
 
     encoder = TargetEncoder()
     with pytest.raises(NotFittedError):
@@ -275,6 +268,55 @@ def test_target_encoder_transform_new_category(
     actual = encoder.transform(data=df_extended)
     expected = df_extended.with_columns(
         pl.Series(name="variable_enc", values=encoded_values)
+    )
+
+    assert_frame_equal(actual, expected)
+
+
+def test_target_encoder_transform_fewer_columns(
+    feat_values_binary_cls, target_binary_cls, encoded_feat_values_binary_cls
+):
+    """Test transform function, but exclude a column compared to calling fit.
+    This is to ensure we can do not have to refit the estimator after feature selection.
+    """
+    df = pl.DataFrame(
+        {
+            "feat": feat_values_binary_cls,
+            "excluded_variable": feat_values_binary_cls,
+            "target": target_binary_cls,
+        }
+    )
+
+    encoder = TargetEncoder()
+    encoder.fit(
+        data=df, column_names=["feat", "excluded_variable"], target_column="target"
+    )
+    actual = encoder.transform(df.select(["feat", "target"]))
+
+    expected = df.with_columns(
+        pl.Series(name="feat_enc", values=encoded_feat_values_binary_cls)
+    ).select(["feat", "target", "feat_enc"])
+
+    assert_frame_equal(actual, expected)
+
+
+def test_target_encoder_fit_transform(
+    feat_values_binary_cls, target_binary_cls, encoded_feat_values_binary_cls
+):
+    df = pl.DataFrame(
+        {
+            "variable": feat_values_binary_cls,
+            "target": target_binary_cls,
+        }
+    )
+
+    encoder = TargetEncoder()
+    actual = encoder.fit_transform(
+        data=df, column_names=["variable"], target_column="target"
+    )
+
+    expected = df.with_columns(
+        pl.Series(name="variable_enc", values=encoded_feat_values_binary_cls)
     )
 
     assert_frame_equal(actual, expected)

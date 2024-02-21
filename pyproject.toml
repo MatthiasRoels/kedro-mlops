@@ -148,9 +148,18 @@ convention = "google"
 addopts = "--cov-report term-missing --cov src/kedro_mlops -ra"
 
 [tool.coverage.report]
-fail_under = 0
+fail_under = 90
 show_missing = true
 exclude_lines = [ "pragma: no cover", "raise NotImplementedError",]
+
+[tool.coverage.run]
+omit = [
+    # kedro project template code
+    "src/kedro_mlops/__main__.py",
+    "src/kedro_mlops/pipeline_registry.py",
+    "src/kedro_mlops/settings.py",
+]
+
 
 [tool.setuptools.dynamic.dependencies]
 file = "requirements.txt"

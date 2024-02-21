@@ -2,6 +2,7 @@ from contextlib import contextmanager
 
 import polars as pl
 import pytest
+from sklearn.exceptions import NotFittedError
 
 from src.kedro_mlops.library.preprocessing.kbins_discretizer import KBinsDiscretizer
 
@@ -54,6 +55,12 @@ def test_fit(use_lazy_frame: bool, auto_adapt_bins: bool):
     assert actual_bin_labels == expected_bin_labels
 
 
+def test_transform_when_not_fitted():
+    discretizer = KBinsDiscretizer()
+    with pytest.raises(NotFittedError):
+        discretizer.transform(data=pl.DataFrame())
+
+
 @pytest.mark.parametrize(
     "use_lazy_frame",
     [(False,), (True,)],
@@ -77,6 +84,49 @@ def test_transform(use_lazy_frame: bool):
         tf_data = tf_data.collect()
 
     actual = tf_data.to_dict(as_series=False)["variable"]
+    expected = [*(["(-inf, 4.5]"] * 5), *(["(4.5, inf)"] * 5)]
+
+    assert actual == expected
+
+
+@pytest.mark.parametrize(
+    "use_lazy_frame",
+    [(False,), (True,)],
+    ids=["eager", "lazy"],
+)
+def test_transform_fewer_columns(use_lazy_frame: bool):
+    data = pl.DataFrame({"feat": list(range(10)), "excluded_feat": list(range(10))})
+
+    if use_lazy_frame:
+        data = data.lazy()
+
+    discretizer = KBinsDiscretizer(n_bins=2, strategy="uniform")
+
+    discretizer.fit(data, ["feat", "excluded_feat"])
+
+    tf_data = discretizer.transform(data.select(["feat"]))
+
+    assert tf_data.dtypes == [pl.Categorical]
+
+    if use_lazy_frame:
+        tf_data = tf_data.collect()
+
+    actual = tf_data.to_dict(as_series=False)["feat"]
+    expected = [*(["(-inf, 4.5]"] * 5), *(["(4.5, inf)"] * 5)]
+
+    assert actual == expected
+
+
+def test_fit_transform():
+    data = pl.DataFrame({"feat": list(range(10))})
+
+    discretizer = KBinsDiscretizer(n_bins=2, strategy="uniform")
+
+    tf_data = discretizer.fit_transform(data, ["feat"])
+
+    assert tf_data.dtypes == [pl.Categorical]
+
+    actual = tf_data.to_dict(as_series=False)["feat"]
     expected = [*(["(-inf, 4.5]"] * 5), *(["(4.5, inf)"] * 5)]
 
     assert actual == expected
