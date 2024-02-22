@@ -1,9 +1,9 @@
 import polars as pl
 from sklearn.base import BaseEstimator
 
-from src.kedro_mlops.library.preprocessing.kbins_discretizer import KBinsDiscretizer
-from src.kedro_mlops.library.preprocessing.target_encoder import TargetEncoder
-from src.kedro_mlops.library.preprocessing.variance_threshold import VarianceThreshold
+from .kbins_discretizer import KBinsDiscretizer
+from .target_encoder import TargetEncoder
+from .variance_threshold import VarianceThreshold
 
 
 def stratified_train_test_split_binary_target(
@@ -54,7 +54,7 @@ def stratified_train_test_split_binary_target(
 
     row_counts_raw = res.to_dict(as_series=False)
     row_counts = {
-        str(k): v for k, v in zip(row_counts_raw["target"], row_counts_raw["len"])
+        str(k): v for k, v in zip(row_counts_raw[target], row_counts_raw["len"])
     }
 
     # Add a row_number partitioned by the target and use it to compute the splits
