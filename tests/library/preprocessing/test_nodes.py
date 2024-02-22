@@ -9,9 +9,7 @@ from src.kedro_mlops.library.preprocessing.nodes import (
 
 @pytest.fixture(scope="module")
 def data():
-    return pl.DataFrame(
-        {"variable": ["a"] * 100, "target": [0] * 80 + [1] * 20}
-    )
+    return pl.DataFrame({"variable": ["a"] * 100, "target": [0] * 80 + [1] * 20})
 
 
 @pytest.fixture(scope="module")
@@ -19,9 +17,7 @@ def sampled_data(data):
     return data.sample(fraction=1.0, seed=42)
 
 
-@pytest.mark.parametrize(
-    "use_lazy", [False, True], ids=["eager", "lazy"]
-)
+@pytest.mark.parametrize("use_lazy", [False, True], ids=["eager", "lazy"])
 def test_stratified_train_test_split_binary_target(data, use_lazy: bool):
     if use_lazy:
         data = data.lazy()
@@ -29,9 +25,7 @@ def test_stratified_train_test_split_binary_target(data, use_lazy: bool):
     expected_values = ["test"] * 24 + ["train"] * 56 + ["test"] * 6 + ["train"] * 14
 
     actual = stratified_train_test_split_binary_target(data, "target", 0.3)
-    expected = data.with_columns(
-        pl.Series(name="split", values=expected_values)
-    )
+    expected = data.with_columns(pl.Series(name="split", values=expected_values))
 
     if use_lazy:
         actual = actual.collect()
@@ -43,7 +37,7 @@ def test_stratified_train_test_split_binary_target(data, use_lazy: bool):
 @pytest.mark.parametrize(
     "use_lazy, shuffle",
     [(False, False), (False, True), (True, False), (True, True)],
-    ids=["eager", "eager_shuffled", "lazy", "lazy_shuffled"]
+    ids=["eager", "eager_shuffled", "lazy", "lazy_shuffled"],
 )
 def test_stratified_train_test_split_binary_target_sampled_data(
     sampled_data, use_lazy: bool, shuffle: bool
@@ -63,6 +57,6 @@ def test_stratified_train_test_split_binary_target_sampled_data(
     expected = {
         "split": ["test", "test", "train", "train"],
         "target": [0, 1, 0, 1],
-        "len": [24, 6, 56, 14]
+        "len": [24, 6, 56, 14],
     }
     assert actual == expected

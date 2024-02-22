@@ -60,21 +60,25 @@ def stratified_train_test_split_binary_target(
     # Add a row_number partitioned by the target and use it to compute the splits
     # We can then use the row number to select the desired number of samples for the
     # test set with the correct proportion of the target
-    return df.with_columns(
-        row_number=pl.col(example_col).rank(method="ordinal").over(target)
-    ).with_columns(
-        split=pl.when(
-            pl.col(target) == 1,
-            pl.col("row_number") <= row_counts["1"] * test_size,
+    return (
+        df.with_columns(
+            row_number=pl.col(example_col).rank(method="ordinal").over(target)
         )
-        .then(pl.lit("test"))
-        .when(
-            pl.col(target) == 0,
-            pl.col("row_number") <= row_counts["0"] * test_size,
+        .with_columns(
+            split=pl.when(
+                pl.col(target) == 1,
+                pl.col("row_number") <= row_counts["1"] * test_size,
+            )
+            .then(pl.lit("test"))
+            .when(
+                pl.col(target) == 0,
+                pl.col("row_number") <= row_counts["0"] * test_size,
+            )
+            .then(pl.lit("test"))
+            .otherwise(pl.lit("train"))
         )
-        .then(pl.lit("test"))
-        .otherwise(pl.lit("train"))
-    ).select([*cnames, "split"])
+        .select([*cnames, "split"])
+    )
 
 
 def apply_variance_threshold(  # pragma: no cover
