@@ -1,0 +1,9 @@
+input_features:
+  type: polars.LazyPolarsDataset
+  filepath: data/integration_tests/titanic.csv
+  file_format: csv
+
+preprocessed_features:
+  type: polars.LazyPolarsDataset
+  filepath: data/integration_tests/titanic.pq
+  file_format: parquet

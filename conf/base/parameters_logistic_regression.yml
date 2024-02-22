@@ -1,0 +1,20 @@
+# This is a boilerplate parameters config generated for pipeline 'logistic_regression'
+# using Kedro 0.19.2.
+#
+# Documentation for this file format can be found in "Parameters"
+# Link: https://docs.kedro.org/en/0.19.2/configuration/parameters.html
+preprocessing:
+  train_test_split:
+    test_size: 0.3
+  variance_threshold:
+    threshold: 0
+  kbins_discretizer: {}
+    #n_bins: 10
+    #strategy: "quantile"
+    #left_closed: false
+    #auto_adapt_bins: true
+    #starting_precision: 0
+    #label_format: "{} - {}"
+  target_encoder: {}
+    #weight: 0.0
+    #imputation_strategy: "mean"
