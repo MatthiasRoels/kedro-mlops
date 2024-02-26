@@ -2,8 +2,9 @@ import polars as pl
 import pytest
 from polars.testing import assert_frame_equal
 
-from src.kedro_mlops.library.preprocessing.nodes import (
+from src.kedro_mlops.library.preprocessing.utils import (
     stratified_train_test_split_binary_target,
+    train_test_split_continuous_target,
 )
 
 
@@ -58,5 +59,32 @@ def test_stratified_train_test_split_binary_target_sampled_data(
         "split": ["test", "test", "train", "train"],
         "target": [0, 1, 0, 1],
         "len": [24, 6, 56, 14],
+    }
+    assert actual == expected
+
+
+@pytest.mark.parametrize(
+    "use_lazy, shuffle",
+    [(False, False), (False, True), (True, False), (True, True)],
+    ids=["eager", "eager_shuffled", "lazy", "lazy_shuffled"],
+)
+def test_train_test_split_continuous_target(
+    sampled_data, use_lazy: bool, shuffle: bool
+):
+    if use_lazy:
+        sampled_data = sampled_data.lazy()
+
+    splitted_data = train_test_split_continuous_target(
+        sampled_data, test_size=0.3, shuffle_data=shuffle, random_seed=42
+    )
+
+    actual_raw = splitted_data.group_by("split").len()
+    if use_lazy:
+        actual_raw = actual_raw.collect()
+
+    actual = actual_raw.sort(["split"]).to_dict(as_series=False)
+    expected = {
+        "split": ["test", "train"],
+        "len": [30, 70],
     }
     assert actual == expected
