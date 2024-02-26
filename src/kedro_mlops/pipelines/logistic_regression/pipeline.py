@@ -1,15 +1,14 @@
-"""
-This is a boilerplate pipeline 'logistic_regression'
+"""This is a boilerplate pipeline 'logistic_regression'
 generated using Kedro 0.19.2
 """
 
 from kedro.pipeline import Pipeline, node, pipeline
 
 from kedro_mlops.library.preprocessing.nodes import (
-    stratified_train_test_split_binary_target,
     apply_variance_threshold,
     fit_discretizer,
     fit_encoder,
+    stratified_train_test_split_binary_target,
     transform_data,
 )
 
@@ -48,10 +47,7 @@ def create_pipeline(**kwargs) -> Pipeline:  # pragma: no cover
             ),
             node(
                 func=transform_data,
-                inputs=[
-                    "filtered_train_test_set",
-                    "fitted_discretizer"
-                ],
+                inputs=["filtered_train_test_set", "fitted_discretizer"],
                 outputs="discretized_data",
                 name="discretize_data_node",
             ),

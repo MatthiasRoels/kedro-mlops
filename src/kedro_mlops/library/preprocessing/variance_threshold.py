@@ -1,5 +1,4 @@
 import polars as pl
-
 from sklearn.base import BaseEstimator
 from sklearn.exceptions import NotFittedError
 

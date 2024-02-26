@@ -1,5 +1,4 @@
-"""
-This is a boilerplate test file for pipeline 'logistic_regression'
+"""This is a boilerplate test file for pipeline 'logistic_regression'
 generated using Kedro 0.19.2.
 Please add your pipeline tests here.
 
