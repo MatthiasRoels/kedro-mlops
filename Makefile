@@ -3,6 +3,9 @@ lint:
 test:
 	pytest --numprocesses 4 tests/
 
+integration-test:
+	kedro run --env=test
+
 install-pre-commit:
 	pre-commit install --install-hooks
 
