@@ -6,7 +6,7 @@ from .target_encoder import TargetEncoder
 from .variance_threshold import VarianceThreshold
 
 
-def apply_variance_threshold(  # pragma: no cover
+def apply_variance_threshold(
     data: pl.DataFrame | pl.LazyFrame,
     threshold: float = 0,
 ) -> pl.DataFrame | pl.LazyFrame:
@@ -26,7 +26,7 @@ def apply_variance_threshold(  # pragma: no cover
     return variance_threshold.fit_transform(data)
 
 
-def fit_discretizer(  # pragma: no cover
+def fit_discretizer(
     data: pl.DataFrame | pl.LazyFrame,
     column_names: list,
     discretizer_config: dict,
@@ -54,7 +54,7 @@ def fit_discretizer(  # pragma: no cover
     return discretizer
 
 
-def fit_encoder(  # pragma: no cover
+def fit_encoder(
     data: pl.DataFrame | pl.LazyFrame,
     column_names: list,
     target_column: str,
@@ -83,7 +83,7 @@ def fit_encoder(  # pragma: no cover
     return encoder
 
 
-def transform_data(  # pragma: no cover
+def transform_data(
     data: pl.DataFrame | pl.LazyFrame,
     fitted_estimator: BaseEstimator,
 ) -> pl.DataFrame | pl.LazyFrame:

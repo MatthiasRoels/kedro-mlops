@@ -154,6 +154,8 @@ exclude_lines = [ "pragma: no cover", "raise NotImplementedError",]
 
 [tool.coverage.run]
 omit = [
+    # small wrappers around well-tested classes and methods
+    "src/kedro_mlops/library/preprocessing/nodes.py",
     # kedro project template code
     "src/kedro_mlops/__main__.py",
     "src/kedro_mlops/pipeline_registry.py",

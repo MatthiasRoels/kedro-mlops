@@ -81,8 +81,8 @@ class KBinsDiscretizer(BaseEstimator):
 
         self.left_closed = left_closed
         self.auto_adapt_bins = auto_adapt_bins
-        self._starting_precision = starting_precision
-        self._label_format = label_format
+        self.starting_precision = starting_precision
+        self.label_format = label_format
 
         # dict to store fitted output in
         self.bin_edges_by_column_ = {}
@@ -337,7 +337,7 @@ class KBinsDiscretizer(BaseEstimator):
         int
             minimal precision for the bin edges
         """
-        precision = self._starting_precision
+        precision = self.starting_precision
         while True:
             cont = False
             for a, b in pairwise(bin_edges):
@@ -366,7 +366,7 @@ class KBinsDiscretizer(BaseEstimator):
         list
             list of (formatted) bin labels
         """
-        label_format = self._label_format
+        label_format = self.label_format
         if label_format is None:
             # Format first and last bin with -inf resp. inf.
             # and properly set label format!

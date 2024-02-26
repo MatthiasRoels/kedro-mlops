@@ -4,11 +4,13 @@ generated using Kedro 0.19.2
 
 from kedro.pipeline import Pipeline, node, pipeline
 
+from kedro_mlops.library.preprocessing.utils import (
+    stratified_train_test_split_binary_target,
+)
 from kedro_mlops.library.preprocessing.nodes import (
     apply_variance_threshold,
     fit_discretizer,
     fit_encoder,
-    stratified_train_test_split_binary_target,
     transform_data,
 )
 
