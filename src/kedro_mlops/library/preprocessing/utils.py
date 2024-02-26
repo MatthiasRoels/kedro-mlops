@@ -124,9 +124,7 @@ def train_test_split_continuous_target(
     # We can then use the row number to select the desired number of samples for the
     # test set with the correct proportion of the target
     return df.with_row_index(offset=1).with_columns(
-        split=pl.when(
-            pl.col("index") <= int(test_size*row_count)
-        )
+        split=pl.when(pl.col("index") <= int(test_size * row_count))
         .then(pl.lit("test"))
         .otherwise(pl.lit("train"))
     )
