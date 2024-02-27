@@ -8,6 +8,7 @@ from kedro_mlops.library.preprocessing.nodes import (
     apply_variance_threshold,
     fit_discretizer,
     fit_encoder,
+    prepare_train_data,
     transform_data,
 )
 from kedro_mlops.library.preprocessing.utils import (
@@ -72,6 +73,16 @@ def create_pipeline(**kwargs) -> Pipeline:  # pragma: no cover
                 ],
                 outputs="preprocessed_data",
                 name="encode_data_node",
+            ),
+            node(
+                func=prepare_train_data,
+                inputs=[
+                    "preprocessed_data",
+                    "params:input_data_schema.target",
+                    "params:preprocessing.univariate_feature_selection.threshold",
+                ],
+                outputs="training_data",
+                name="univariate_feature_selection_node",
             ),
         ]
     )

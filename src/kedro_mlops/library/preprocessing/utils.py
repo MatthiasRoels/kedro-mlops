@@ -1,4 +1,9 @@
+import logging
+
 import polars as pl
+import polars_ds as pld  # noqa: F401
+
+logger = logging.getLogger(__name__)
 
 
 def stratified_train_test_split_binary_target(
@@ -127,4 +132,63 @@ def train_test_split_continuous_target(
         split=pl.when(pl.col("index") <= int(test_size * row_count))
         .then(pl.lit("test"))
         .otherwise(pl.lit("train"))
+    )
+
+
+def univariate_feature_selection_classification(
+    data: pl.DataFrame | pl.LazyFrame,
+    target: str,
+    threshold: float = 0.5,
+) -> pl.DataFrame | pl.LazyFrame:
+    """Perform a preselection of features based on the ROC AUC score of
+    a univariate model.
+
+    As the AUC just calculates the quality of a ranking, all monotonous transformations
+    of a given ranking (i.e. transformations that do not alter the ranking itself) will
+    lead to the same AUC. Hence, training a logistic regression model on a single
+    categorical variable (incl. a discretized continuous variable) will produce exactly
+    the same ranking as using the target encoded values as model scores. In fact, both
+    will produce the exact same output: a ranking of the categories on the training set.
+    Therefore, no model is trained here as the target encoded data is/must be used as
+    inputs for this function. These will be used as predicted scores to compute the
+    ROC AUC with against the target.
+
+    Parameters
+    ----------
+    data: pl.DataFrame | pl.LazyFrame,
+        Input data
+    target : str
+        Name of the target column.
+    threshold : float, optional
+        Threshold on min. AUC to select the features
+
+    Returns
+    -------
+    pl.DataFrame | pl.LazyFrame
+        DataFrame with features dropped that were not selected.
+    """
+    auc = pl.concat(
+        [
+            data.select(
+                cname=pl.lit(cname),
+                # part of polars-ds package:
+                roc_auc=pl.col(target).metric.roc_auc(pl.col(cname)),
+            )
+            for cname in data.columns
+            if cname != target
+        ]
+    )
+
+    if isinstance(auc, pl.LazyFrame):
+        auc = auc.collect()
+
+    logger.info("ROC AUC preselection:")
+    logger.info(auc)
+
+    dropped_features = auc.filter(pl.col("roc_auc") <= threshold).select("cname")
+
+    dropped_features = dropped_features.to_dict(as_series=False)
+
+    return data.select(
+        [cname for cname in data.columns if cname not in dropped_features]
     )

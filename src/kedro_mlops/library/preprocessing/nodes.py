@@ -3,6 +3,7 @@ from sklearn.base import BaseEstimator
 
 from .kbins_discretizer import KBinsDiscretizer
 from .target_encoder import TargetEncoder
+from .utils import univariate_feature_selection_classification
 from .variance_threshold import VarianceThreshold
 
 
@@ -89,3 +90,33 @@ def transform_data(
 ) -> pl.DataFrame | pl.LazyFrame:
     """Wrapper around transform methods of estimators"""
     return fitted_estimator.transform(data)
+
+
+def prepare_train_data(
+    data: pl.DataFrame | pl.LazyFrame,
+    target: str,
+    threshold: float,
+) -> pl.DataFrame | pl.LazyFrame:
+    """Wrapper around univariate_feature_selection_classification utils function
+
+    This is the final preparation step to generate a ready-to-use training dataset.
+
+    Parameters
+    ----------
+    data: pl.DataFrame | pl.LazyFrame,
+        Input data
+    target : str
+        Name of the target column.
+    threshold : float, optional
+        Threshold on min. AUC to select the features
+
+    Returns
+    -------
+    pl.DataFrame | pl.LazyFrame
+        Pepared dataset for training
+    """
+    train_data = data.filter(pl.col("split") == "train").select(
+        [cname for cname in data.columns if cname.endswith("_enc") or cname == target]
+    )
+
+    return univariate_feature_selection_classification(train_data, target, threshold)

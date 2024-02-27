@@ -4,7 +4,7 @@ import polars as pl
 from sklearn.base import BaseEstimator
 from sklearn.exceptions import NotFittedError
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class TargetEncoder(BaseEstimator):
@@ -77,7 +77,7 @@ class TargetEncoder(BaseEstimator):
             )
 
         if weight == 0:
-            log.warning(
+            logger.warning(
                 "The target encoder's additive smoothing weight is set to 0."
                 "This disables smoothing and may make the encoding prone to "
                 "overfitting. Increase the weight if needed."
