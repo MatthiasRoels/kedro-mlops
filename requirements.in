@@ -1,3 +1,4 @@
 kedro
 kedro-datasets[polars]
 polars[fsspec]
+polars-ds

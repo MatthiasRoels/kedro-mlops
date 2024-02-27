@@ -1,7 +1,7 @@
 lint:
 	pre-commit run -a --hook-stage manual $(hook)
 test:
-	pytest --numprocesses 4 tests/
+	pytest tests/
 
 integration-test:
 	kedro run --env=test
