@@ -192,3 +192,53 @@ def univariate_feature_selection_classification(
     return data.select(
         [cname for cname in data.columns if cname not in dropped_features]
     )
+
+
+def univariate_feature_selection_regression(
+    data: pl.DataFrame | pl.LazyFrame,
+    target: str,
+    threshold: float = 5,
+) -> pl.DataFrame | pl.LazyFrame:
+    """Perform a preselection of features based on the RMSE score of a univariate model.
+
+    Parameters
+    ----------
+    data: pl.DataFrame | pl.LazyFrame,
+        Input data
+    target : str
+        Name of the target column.
+    threshold : float, optional
+        Threshold on max. RMSE to select the features
+
+    Returns
+    -------
+    pl.DataFrame | pl.LazyFrame
+        DataFrame with features dropped that were not selected.
+    """
+    num_rows = data.select(pl.len()).lazy().collect().item()
+
+    rmse = pl.concat(
+        [
+            data.select(
+                cname=pl.lit(cname),
+                # part of polars-ds package:
+                rmse=((pl.col(target) - pl.col(cname)) ** 2 / num_rows).sqrt(),
+            )
+            for cname in data.columns
+            if cname != target
+        ]
+    )
+
+    if isinstance(rmse, pl.LazyFrame):
+        rmse = rmse.collect()
+
+    logger.info("RMSE preselection:")
+    logger.info(rmse)
+
+    dropped_features = rmse.filter(pl.col("roc_auc") >= threshold).select("cname")
+
+    dropped_features = dropped_features.to_dict(as_series=False)
+
+    return data.select(
+        [cname for cname in data.columns if cname not in dropped_features]
+    )
