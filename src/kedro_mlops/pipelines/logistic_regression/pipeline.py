@@ -36,7 +36,7 @@ def create_pipeline(**kwargs) -> Pipeline:  # pragma: no cover
                     "params:preprocessing.variance_threshold.threshold",
                 ],
                 outputs="filtered_train_test_set",
-                name="variance_threshold_node",
+                name="apply_variance_threshold_node",
             ),
             node(
                 func=fit_discretizer,
@@ -46,7 +46,7 @@ def create_pipeline(**kwargs) -> Pipeline:  # pragma: no cover
                     "params:preprocessing.kbins_discretizer",
                 ],
                 outputs="fitted_discretizer",
-                name="fit_discretizer_node",
+                name="fit_kbins_discretizer_node",
             ),
             node(
                 func=transform_data,
@@ -58,12 +58,12 @@ def create_pipeline(**kwargs) -> Pipeline:  # pragma: no cover
                 func=fit_encoder,
                 inputs=[
                     "discretized_data",
-                    "params:input_data_schema.numeric_columns",
                     "params:input_data_schema.target",
                     "params:preprocessing.target_encoder",
+                    "params:input_data_schema.pk_col",
                 ],
                 outputs="fitted_encoder",
-                name="fit_encoder_node",
+                name="fit_target_encoder_node",
             ),
             node(
                 func=transform_data,
@@ -72,7 +72,7 @@ def create_pipeline(**kwargs) -> Pipeline:  # pragma: no cover
                     "fitted_encoder",
                 ],
                 outputs="preprocessed_data",
-                name="encode_data_node",
+                name="target_encode_data_node",
             ),
             node(
                 func=prepare_train_data,

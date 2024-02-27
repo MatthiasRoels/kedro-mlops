@@ -57,9 +57,9 @@ def fit_discretizer(
 
 def fit_encoder(
     data: pl.DataFrame | pl.LazyFrame,
-    column_names: list,
     target_column: str,
     encoder_config: dict,
+    pk_col: str | list | None = None,
 ) -> TargetEncoder:
     """Wrapper around TargetEncoder.fit
     Parameters
@@ -78,6 +78,13 @@ def fit_encoder(
     TargetEncoder
         Fitted estimator
     """
+    excluded = ["split", target_column]
+    if isinstance(pk_col, str):
+        excluded.append(pk_col)
+    elif isinstance(pk_col, list):
+        excluded = [*excluded, *pk_col]
+
+    column_names = [cname for cname in data.columns if cname not in excluded]
     encoder = TargetEncoder(**encoder_config)
     encoder.fit(data.filter(pl.col("split") == "train"), column_names, target_column)
 
