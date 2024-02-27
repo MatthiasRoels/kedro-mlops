@@ -117,34 +117,26 @@ class TargetEncoder(BaseEstimator):
 
         cname_list = [cname for cname in column_names if cname in data.columns]
 
-        res = pl.concat(
-            [
-                data.group_by(cname)
-                .agg(pl.mean(target_column).alias("mean"), pl.len().alias("count"))
-                .with_columns(
-                    cname=pl.lit(cname),
-                    incidence=(
-                        pl.col("count") * pl.col("mean")
-                        + self.weight * self.global_mean_
-                    )
-                    / (pl.col("count") + self.weight),
+        results = [
+            data.group_by(cname)
+            .agg(pl.mean(target_column).alias("mean"), pl.len().alias("count"))
+            .with_columns(
+                cname=pl.lit(cname),
+                incidence=(
+                    pl.col("count") * pl.col("mean") + self.weight * self.global_mean_
                 )
-                .select("cname", pl.col(cname).alias("value"), "incidence")
-                for cname in cname_list
-            ],
-            how="diagonal",
-        )
+                / (pl.col("count") + self.weight),
+            )
+            .select("cname", pl.col(cname).alias("value"), "incidence")
+            for cname in cname_list
+        ]
 
-        if isinstance(res, pl.LazyFrame):
-            res = res.collect()
-
-        # unpack result in a mapping to make it easier to do the transform step
-        # efficiently
-        for row in res.iter_rows(named=True):
-            if row["cname"] in self.mapping_:
-                self.mapping_[row["cname"]].update({row["value"]: row["incidence"]})
-            else:
-                self.mapping_[row["cname"]] = {row["value"]: row["incidence"]}
+        for frame in results:
+            for row in frame.lazy().collect().iter_rows(named=True):
+                if row["cname"] in self.mapping_:
+                    self.mapping_[row["cname"]].update({row["value"]: row["incidence"]})
+                else:
+                    self.mapping_[row["cname"]] = {row["value"]: row["incidence"]}
 
     def transform(
         self, data: pl.LazyFrame | pl.DataFrame

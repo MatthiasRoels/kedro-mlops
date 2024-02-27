@@ -152,6 +152,34 @@ def test_target_encoder_fit(
     assert actual == pytest.approx(expected, rel=1e-3, abs=1e-3)
 
 
+@pytest.mark.parametrize("use_lazy_api", [False, True], ids=["eager", "lazy"])
+def test_target_encoder_fit_multiple_columns_different_dtypes(
+    feat_values_binary_cls, target_binary_cls, use_lazy_api: bool
+):
+    df = pl.DataFrame(
+        {
+            "feat_1": feat_values_binary_cls,
+            "feat_2": [0] * 5 + [1, 1, 2, 1, 2],
+            "target": target_binary_cls,
+        }
+    )
+
+    if use_lazy_api:
+        df = df.lazy()
+
+    encoder = TargetEncoder()
+    encoder.fit(data=df, column_names=["feat_1", "feat_2"], target_column="target")
+
+    actual = encoder.mapping_
+    expected = {
+        "feat_1": {"negative": 0.333333, "neutral": 0.50000, "positive": 0.666667},
+        "feat_2": {0: 0.6, 1: 0.3333, 2: 0.5},
+    }
+
+    assert actual["feat_1"] == pytest.approx(expected["feat_1"], rel=1e-3, abs=1e-3)
+    assert actual["feat_2"] == pytest.approx(expected["feat_2"], rel=1e-3, abs=1e-3)
+
+
 def test_target_encoder_transform_when_not_fitted():
     df = pl.DataFrame()
 
