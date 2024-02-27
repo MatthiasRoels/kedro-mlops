@@ -1,4 +1,7 @@
 input_data_schema:
+  pk_col:
+    - PassengerId
+    - Name
   target: "Survived"
   numeric_columns:
     - Age

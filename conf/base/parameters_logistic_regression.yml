@@ -18,3 +18,5 @@ preprocessing:
   target_encoder: {}
     #weight: 0.0
     #imputation_strategy: "mean"
+  univariate_feature_selection:
+    threshold: 0.5
