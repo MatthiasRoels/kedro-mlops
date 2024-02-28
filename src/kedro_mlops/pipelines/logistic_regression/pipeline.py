@@ -4,6 +4,11 @@ generated using Kedro 0.19.2
 
 from kedro.pipeline import Pipeline, node, pipeline
 
+from kedro_mlops.library.model_building.linear import (
+    feature_selection,
+    get_predictions,
+    train_model,
+)
 from kedro_mlops.library.preprocessing.nodes import (
     apply_variance_threshold,
     fit_discretizer,
@@ -83,6 +88,35 @@ def create_pipeline(**kwargs) -> Pipeline:  # pragma: no cover
                 ],
                 outputs="training_data",
                 name="univariate_feature_selection_node",
+            ),
+            node(
+                func=feature_selection,
+                inputs=[
+                    "training_data",
+                    "params:input_data_schema.target",
+                ],
+                outputs="selected_features",
+                name="feature_selection_node",
+            ),
+            node(
+                func=train_model,
+                inputs=[
+                    "training_data",
+                    "params:input_data_schema.target",
+                    "selected_features",
+                ],
+                outputs="fitted_model",
+                name="train_model_node",
+            ),
+            node(
+                func=get_predictions,
+                inputs=[
+                    "preprocessed_data",
+                    "selected_features",
+                    "fitted_model",
+                ],
+                outputs="model_outputs",
+                name="get_predictions_node",
             ),
         ]
     )

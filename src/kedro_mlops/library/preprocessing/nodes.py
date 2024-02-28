@@ -1,6 +1,8 @@
 import polars as pl
 from sklearn.base import BaseEstimator
 
+from kedro_mlops.library.utils import materialize_data
+
 from .kbins_discretizer import KBinsDiscretizer
 from .target_encoder import TargetEncoder
 from .utils import univariate_feature_selection_classification
@@ -103,7 +105,7 @@ def prepare_train_data(
     data: pl.DataFrame | pl.LazyFrame,
     target: str,
     threshold: float,
-) -> pl.DataFrame | pl.LazyFrame:
+) -> pl.DataFrame:
     """Wrapper around univariate_feature_selection_classification utils function
 
     This is the final preparation step to generate a ready-to-use training dataset.
@@ -119,11 +121,15 @@ def prepare_train_data(
 
     Returns
     -------
-    pl.DataFrame | pl.LazyFrame
+    pl.DataFrame
         Pepared dataset for training
     """
     train_data = data.filter(pl.col("split") == "train").select(
         [cname for cname in data.columns if cname.endswith("_enc") or cname == target]
     )
 
-    return univariate_feature_selection_classification(train_data, target, threshold)
+    prepared_train_data = univariate_feature_selection_classification(
+        train_data, target, threshold
+    )
+
+    return materialize_data(prepared_train_data)
