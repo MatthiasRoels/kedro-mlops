@@ -1,7 +1,6 @@
 import polars as pl
 from sklearn.feature_selection import SequentialFeatureSelector
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import roc_auc_score
 
 from kedro_mlops.library.utils import materialize_data
 
@@ -13,10 +12,7 @@ def feature_selection(
     cnames = [cname for cname in train_data.columns if cname != target]
 
     logit = LogisticRegression(
-        fit_intercept=True,
-        C=1e9,
-        solver='liblinear',
-        random_state=42
+        fit_intercept=True, C=1e9, solver="liblinear", random_state=42
     )
 
     sfs = SequentialFeatureSelector(
@@ -40,12 +36,8 @@ def train_model(
     target: str,
     selected_features: list,
 ) -> LogisticRegression:
-
     logit = LogisticRegression(
-        fit_intercept=True,
-        C=1e9,
-        solver='liblinear',
-        random_state=42
+        fit_intercept=True, C=1e9, solver="liblinear", random_state=42
     )
 
     logit.fit(train_data[selected_features], train_data[target])
