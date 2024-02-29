@@ -11,3 +11,6 @@ install-pre-commit:
 
 uninstall-pre-commit:
 	pre-commit uninstall
+
+secret-scan:
+	trufflehog --max_depth 1 --exclude_paths trufflehog-ignore.txt .

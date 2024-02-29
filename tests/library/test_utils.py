@@ -1,5 +1,5 @@
-import pytest
 import polars as pl
+import pytest
 
 from src.kedro_mlops.library.utils import materialize_data
 
