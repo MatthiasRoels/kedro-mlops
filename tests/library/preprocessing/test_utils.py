@@ -5,12 +5,32 @@ from polars.testing import assert_frame_equal
 from src.kedro_mlops.library.preprocessing.utils import (
     stratified_train_test_split_binary_target,
     train_test_split_continuous_target,
+    univariate_feature_selection_classification,
+    univariate_feature_selection_regression,
 )
 
 
 @pytest.fixture(scope="module")
 def data():
     return pl.DataFrame({"variable": ["a"] * 100, "target": [0] * 80 + [1] * 20})
+
+
+@pytest.fixture(scope="module")
+def features_binary_target():
+    return {
+        "target": [0, 0, 0, 1, 1],
+        "good_feature": [0.2, 0.3, 0.7, 0.6, 0.9],
+        "bad_feature": [0.8, 0.6, 0.7, 0.3, 0.9],
+    }
+
+
+@pytest.fixture(scope="module")
+def features_continuous_target():
+    return {
+        "target": [1, 2, 3, 4, 5],
+        "good_feature": [1.2, 1.8, 2.7, 4.3, 5.2],
+        "bad_feature": [0.5, 3, 2.6, 2.9, 7],
+    }
 
 
 @pytest.fixture(scope="module")
@@ -88,3 +108,39 @@ def test_train_test_split_continuous_target(
         "len": [30, 70],
     }
     assert actual == expected
+
+
+@pytest.mark.parametrize("use_lazy_api", [False, True], ids=["eager", "lazy"])
+def test_univariate_feature_selection_classification(
+    features_binary_target, use_lazy_api: bool
+):
+    data = pl.DataFrame(features_binary_target)
+    if use_lazy_api:
+        data = data.lazy()
+
+    actual = univariate_feature_selection_classification(data, "target")
+    expected = data.select(["target", "good_feature"])
+
+    if use_lazy_api:
+        actual = actual.collect()
+        expected = expected.collect()
+
+    assert_frame_equal(actual, expected)
+
+
+@pytest.mark.parametrize("use_lazy_api", [False, True], ids=["eager", "lazy"])
+def test_univariate_feature_selection_regression(
+    features_continuous_target, use_lazy_api: bool
+):
+    data = pl.DataFrame(features_continuous_target)
+    if use_lazy_api:
+        data = data.lazy()
+
+    actual = univariate_feature_selection_regression(data, "target", threshold=1)
+    expected = data.select(["target", "good_feature"])
+
+    if use_lazy_api:
+        actual = actual.collect()
+        expected = expected.collect()
+
+    assert_frame_equal(actual, expected)

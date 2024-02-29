@@ -187,7 +187,7 @@ def univariate_feature_selection_classification(
 
     dropped_features = auc.filter(pl.col("roc_auc") <= threshold).select("cname")
 
-    dropped_features = dropped_features.to_dict(as_series=False)
+    dropped_features = dropped_features.to_dict(as_series=False)["cname"]
 
     return data.select(
         [cname for cname in data.columns if cname not in dropped_features]
@@ -222,7 +222,7 @@ def univariate_feature_selection_regression(
             data.select(
                 cname=pl.lit(cname),
                 # part of polars-ds package:
-                rmse=((pl.col(target) - pl.col(cname)) ** 2 / num_rows).sqrt(),
+                rmse=((pl.col(target) - pl.col(cname)) ** 2 / num_rows).sum().sqrt(),
             )
             for cname in data.columns
             if cname != target
@@ -235,9 +235,8 @@ def univariate_feature_selection_regression(
     logger.info("RMSE preselection:")
     logger.info(rmse)
 
-    dropped_features = rmse.filter(pl.col("roc_auc") >= threshold).select("cname")
-
-    dropped_features = dropped_features.to_dict(as_series=False)
+    dropped_features = rmse.filter(pl.col("rmse") >= threshold).select("cname")
+    dropped_features = dropped_features.to_dict(as_series=False)["cname"]
 
     return data.select(
         [cname for cname in data.columns if cname not in dropped_features]
