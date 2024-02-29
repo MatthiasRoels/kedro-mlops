@@ -1,13 +1,12 @@
 import polars as pl
 import pytest
-from polars.testing import assert_frame_equal
-
-from src.kedro_mlops.library.preprocessing.utils import (
+from kedro_mlops.library.preprocessing.utils import (
     stratified_train_test_split_binary_target,
     train_test_split_continuous_target,
     univariate_feature_selection_classification,
     univariate_feature_selection_regression,
 )
+from polars.testing import assert_frame_equal
 
 
 @pytest.fixture(scope="module")

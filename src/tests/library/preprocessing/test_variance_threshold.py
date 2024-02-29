@@ -1,9 +1,8 @@
 import polars as pl
 import pytest
+from kedro_mlops.library.preprocessing.variance_threshold import VarianceThreshold
 from polars.testing import assert_frame_equal
 from sklearn.exceptions import NotFittedError
-
-from src.kedro_mlops.library.preprocessing.variance_threshold import VarianceThreshold
 
 
 @pytest.fixture()

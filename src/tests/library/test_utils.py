@@ -1,7 +1,6 @@
 import polars as pl
 import pytest
-
-from src.kedro_mlops.library.utils import materialize_data
+from kedro_mlops.library.utils import materialize_data
 
 
 @pytest.mark.parametrize("use_lazy_api", [False, True], ids=["eager", "lazy"])

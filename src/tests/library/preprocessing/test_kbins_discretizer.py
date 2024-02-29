@@ -2,9 +2,8 @@ from contextlib import contextmanager
 
 import polars as pl
 import pytest
+from kedro_mlops.library.preprocessing.kbins_discretizer import KBinsDiscretizer
 from sklearn.exceptions import NotFittedError
-
-from src.kedro_mlops.library.preprocessing.kbins_discretizer import KBinsDiscretizer
 
 
 @contextmanager
