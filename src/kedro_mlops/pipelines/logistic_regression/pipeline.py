@@ -5,8 +5,8 @@ generated using Kedro 0.19.2
 from kedro.pipeline import Pipeline, node, pipeline
 
 from kedro_mlops.library.model_building.linear import (
-    feature_selection,
     get_predictions,
+    sequential_feature_selection,
     train_model,
 )
 from kedro_mlops.library.preprocessing.nodes import (
@@ -90,10 +90,11 @@ def create_pipeline(**kwargs) -> Pipeline:  # pragma: no cover
                 name="univariate_feature_selection_node",
             ),
             node(
-                func=feature_selection,
+                func=sequential_feature_selection,
                 inputs=[
                     "training_data",
                     "params:input_data_schema.target",
+                    "params:mod_params",
                 ],
                 outputs="selected_features",
                 name="feature_selection_node",
@@ -104,6 +105,7 @@ def create_pipeline(**kwargs) -> Pipeline:  # pragma: no cover
                     "training_data",
                     "params:input_data_schema.target",
                     "selected_features",
+                    "params:mod_params",
                 ],
                 outputs="fitted_model",
                 name="train_model_node",

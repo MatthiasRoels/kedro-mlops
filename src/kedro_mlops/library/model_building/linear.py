@@ -1,26 +1,22 @@
 import polars as pl
+from kedro.utils import load_obj
+from sklearn.base import BaseEstimator
 from sklearn.feature_selection import SequentialFeatureSelector
-from sklearn.linear_model import LogisticRegression
 
 from kedro_mlops.library.utils import materialize_data
 
 
-def feature_selection(
+def sequential_feature_selection(
     train_data: pl.DataFrame,
     target: str,
+    mod_params: dict,
 ) -> list:
     cnames = [cname for cname in train_data.columns if cname != target]
 
-    logit = LogisticRegression(
-        fit_intercept=True, C=1e9, solver="liblinear", random_state=42
-    )
+    model = load_obj(mod_params["model"]["class"])(**mod_params["model"]["kwargs"])
 
     sfs = SequentialFeatureSelector(
-        logit,
-        tol=10e-3,
-        direction="forward",
-        scoring="roc_auc",
-        cv=5,
+        model, **mod_params["sequential_feature_selection_kwargs"]
     )
 
     # cast target to pd.Series to avoid a warning/error on expecting a 1d array
@@ -35,21 +31,20 @@ def train_model(
     train_data: pl.DataFrame,
     target: str,
     selected_features: list,
-) -> LogisticRegression:
-    logit = LogisticRegression(
-        fit_intercept=True, C=1e9, solver="liblinear", random_state=42
-    )
+    mod_params: dict,
+) -> BaseEstimator:
+    model = load_obj(mod_params["model"]["class"])(**mod_params["model"]["kwargs"])
 
-    logit.fit(train_data[selected_features], train_data[target])
+    model.fit(train_data[selected_features], train_data[target])
 
-    return logit
+    return model
 
 
 def get_predictions(
     data: pl.DataFrame | pl.LazyFrame,
     selected_features: list,
-    logit: LogisticRegression,
+    model: BaseEstimator,
 ) -> pl.DataFrame:
     df = materialize_data(data)
-    y_pred = logit.predict_proba(df[selected_features])[:, 1]
+    y_pred = model.predict_proba(df[selected_features])[:, 1]
     return df.with_columns(predictions=pl.Series("y_pred", y_pred))

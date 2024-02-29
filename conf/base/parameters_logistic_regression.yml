@@ -19,4 +19,19 @@ preprocessing:
     #weight: 0.0
     #imputation_strategy: "mean"
   univariate_feature_selection:
+    # default of 0.5 for classification (ROC AUC) and 5 for regression (RMSE)
     threshold: 0.5
+mod_params:
+  model:
+    class: sklearn.linear_model.LogisticRegression
+    kwargs:
+      fit_intercept: true
+      C: 1e9
+      solver: "liblinear"
+      random_state: 42
+  sequential_feature_selection_kwargs:
+    tol: 10e-3
+    direction: "forward"
+    # change to "rmse" for regression
+    scoring: "roc_auc"
+    cv: 5
