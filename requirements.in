@@ -1,4 +1,9 @@
 kedro
 kedro-datasets[polars]
+pandas
 polars[fsspec]
 polars-ds
+scikit-learn
+xgboost
+shap
+mlflow-skinny

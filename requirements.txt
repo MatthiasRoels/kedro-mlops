@@ -22,12 +22,19 @@ click==8.1.7
     # via
     #   cookiecutter
     #   kedro
+    #   mlflow-skinny
+cloudpickle==3.0.0
+    # via
+    #   mlflow-skinny
+    #   shap
 cookiecutter==2.6.0
     # via kedro
 deltalake==0.15.3
     # via kedro-datasets
 dynaconf==3.2.4
     # via kedro
+entrypoints==0.4
+    # via mlflow-skinny
 fsspec==2024.2.0
     # via
     #   kedro
@@ -35,51 +42,75 @@ fsspec==2024.2.0
 gitdb==4.0.11
     # via gitpython
 gitpython==3.1.42
-    # via kedro
+    # via
+    #   kedro
+    #   mlflow-skinny
 idna==3.6
     # via requests
 importlib-metadata==7.0.1
-    # via kedro
+    # via
+    #   kedro
+    #   mlflow-skinny
 importlib-resources==6.1.2
     # via kedro
 jinja2==3.1.3
     # via cookiecutter
 jmespath==1.0.1
     # via kedro
+joblib==1.3.2
+    # via scikit-learn
 kedro==0.19.3
     # via kedro-datasets
-kedro-datasets==2.0.0
+kedro-datasets==2.1.0
 lazy-loader==0.3
     # via kedro-datasets
+llvmlite==0.42.0
+    # via numba
 markdown-it-py==3.0.0
     # via rich
 markupsafe==2.1.5
     # via jinja2
 mdurl==0.1.2
     # via markdown-it-py
+mlflow-skinny==2.10.2
 more-itertools==10.2.0
     # via kedro
+numba==0.59.0
+    # via shap
 numpy==1.26.4
-    # via pyarrow
+    # via
+    #   numba
+    #   pandas
+    #   pyarrow
+    #   scikit-learn
+    #   scipy
+    #   shap
+    #   xgboost
 omegaconf==2.3.0
     # via kedro
 packaging==23.2
     # via
     #   build
+    #   mlflow-skinny
     #   pytoolconfig
+    #   shap
+pandas==2.2.1
+    # via shap
 parse==1.20.1
     # via kedro
 platformdirs==4.2.0
     # via pytoolconfig
 pluggy==1.3.0
     # via kedro
-polars==0.20.11
+polars==0.20.10
     # via
     #   kedro-datasets
     #   polars-ds
 polars-ds==0.3.3
 pre-commit-hooks==4.5.0
     # via kedro
+protobuf==4.25.3
+    # via mlflow-skinny
 pyarrow==15.0.0
     # via
     #   deltalake
@@ -91,19 +122,28 @@ pygments==2.17.2
 pyproject-hooks==1.0.0
     # via build
 python-dateutil==2.8.2
-    # via arrow
+    # via
+    #   arrow
+    #   pandas
 python-slugify==8.0.4
     # via cookiecutter
 pytoolconfig==1.3.1
     # via rope
+pytz==2023.4
+    # via
+    #   mlflow-skinny
+    #   pandas
 pyyaml==6.0.1
     # via
     #   cookiecutter
     #   kedro
+    #   mlflow-skinny
     #   omegaconf
 requests==2.31.0
-    # via cookiecutter
-rich==13.7.0
+    # via
+    #   cookiecutter
+    #   mlflow-skinny
+rich==13.7.1
     # via
     #   cookiecutter
     #   kedro
@@ -113,12 +153,26 @@ ruamel-yaml==0.18.6
     # via pre-commit-hooks
 ruamel-yaml-clib==0.2.8
     # via ruamel-yaml
+scikit-learn==1.4.1.post1
+    # via shap
+scipy==1.12.0
+    # via
+    #   scikit-learn
+    #   shap
+    #   xgboost
+shap==0.44.1
 six==1.16.0
     # via python-dateutil
+slicer==0.0.7
+    # via shap
 smmap==5.0.1
     # via gitdb
+sqlparse==0.4.4
+    # via mlflow-skinny
 text-unidecode==1.3
     # via python-slugify
+threadpoolctl==3.3.0
+    # via scikit-learn
 toml==0.10.2
     # via kedro
 tomli==2.0.1
@@ -129,10 +183,15 @@ tomli==2.0.1
     #   pytoolconfig
 toposort==1.10
     # via kedro
+tqdm==4.66.2
+    # via shap
 types-python-dateutil==2.8.19.20240106
     # via arrow
+tzdata==2024.1
+    # via pandas
 urllib3==2.2.1
     # via requests
+xgboost==2.0.3
 xlsx2csv==0.8.2
     # via kedro-datasets
 zipp==3.17.0
