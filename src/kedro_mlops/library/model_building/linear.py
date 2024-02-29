@@ -44,7 +44,12 @@ def get_predictions(
     data: pl.DataFrame | pl.LazyFrame,
     selected_features: list,
     model: BaseEstimator,
+    use_predict_proba: bool = True,
 ) -> pl.DataFrame:
     df = materialize_data(data)
-    y_pred = model.predict_proba(df[selected_features])[:, 1]
+    if use_predict_proba:
+        y_pred = model.predict_proba(df[selected_features])[:, 1]
+    else:
+        y_pred = model.predict(df[selected_features])
+
     return df.with_columns(predictions=pl.Series("y_pred", y_pred))
