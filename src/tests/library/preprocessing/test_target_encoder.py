@@ -83,12 +83,12 @@ def encoded_feat_values_regression() -> list:
 
 def test_target_encoder_constructor_weight_value_error():
     with pytest.raises(ValueError):
-        TargetEncoder(weight=-1)
+        TargetEncoder([], weight=-1)
 
 
 def test_target_encoder_constructor_imputation_value_error():
     with pytest.raises(ValueError):
-        TargetEncoder(imputation_strategy="median")
+        TargetEncoder([], imputation_strategy="median")
 
 
 @pytest.mark.parametrize(
@@ -143,8 +143,8 @@ def test_target_encoder_fit(
     if use_lazy_api:
         df = df.lazy()
 
-    encoder = TargetEncoder()
-    encoder.fit(data=df, column_names=["variable"], target_column="target")
+    encoder = TargetEncoder(column_names=["variable"])
+    encoder.fit(X=df.select("variable"), y=df.select("target"))
 
     actual = encoder.mapping_["variable"]
 
@@ -166,8 +166,8 @@ def test_target_encoder_fit_multiple_columns_different_dtypes(
     if use_lazy_api:
         df = df.lazy()
 
-    encoder = TargetEncoder()
-    encoder.fit(data=df, column_names=["feat_1", "feat_2"], target_column="target")
+    encoder = TargetEncoder(column_names=["feat_1", "feat_2"])
+    encoder.fit(X=df.select(["feat_1", "feat_2"]), y=df.select("target"))
 
     actual = encoder.mapping_
     expected = {
@@ -182,9 +182,9 @@ def test_target_encoder_fit_multiple_columns_different_dtypes(
 def test_target_encoder_transform_when_not_fitted():
     df = pl.DataFrame()
 
-    encoder = TargetEncoder()
+    encoder = TargetEncoder([])
     with pytest.raises(NotFittedError):
-        encoder.transform(data=df)
+        encoder.transform(X=df)
 
 
 @pytest.mark.parametrize(
@@ -239,10 +239,10 @@ def test_target_encoder_transform(
     if use_lazy_api:
         df = df.lazy()
 
-    encoder = TargetEncoder()
-    encoder.fit(data=df, column_names=["variable"], target_column="target")
+    encoder = TargetEncoder(column_names=["variable"])
+    encoder.fit(X=df.select("variable"), y=df.select("target"))
 
-    actual = encoder.transform(data=df)
+    actual = encoder.transform(X=df.select("variable"))
     expected = df.with_columns(
         pl.Series(name="variable_enc", values=request.getfixturevalue(variable_enc))
     )
@@ -250,7 +250,7 @@ def test_target_encoder_transform(
         actual = actual.collect()
         expected = expected.collect()
 
-    assert_frame_equal(actual, expected)
+    assert_frame_equal(actual, expected.select(pl.exclude("target")))
 
 
 @pytest.mark.parametrize(
@@ -285,19 +285,19 @@ def test_target_encoder_transform_new_category(
         }
     )
 
-    encoder = TargetEncoder(imputation_strategy="min")
-    encoder.fit(data=df, column_names=["variable"], target_column="target")
+    encoder = TargetEncoder(column_names=["variable"], imputation_strategy="min")
+    encoder.fit(X=df.select("variable"), y=df.select("target"))
 
     df_extended = df.extend(pl.DataFrame({"variable": "new", "target": 1}))
 
     encoded_values = [*request.getfixturevalue(variable_enc), additional_enc_value]
 
-    actual = encoder.transform(data=df_extended)
+    actual = encoder.transform(X=df_extended.select("variable"))
     expected = df_extended.with_columns(
         pl.Series(name="variable_enc", values=encoded_values)
     )
 
-    assert_frame_equal(actual, expected)
+    assert_frame_equal(actual, expected.select(pl.exclude("target")))
 
 
 def test_target_encoder_transform_fewer_columns(
@@ -314,15 +314,13 @@ def test_target_encoder_transform_fewer_columns(
         }
     )
 
-    encoder = TargetEncoder()
-    encoder.fit(
-        data=df, column_names=["feat", "excluded_variable"], target_column="target"
-    )
-    actual = encoder.transform(df.select(["feat", "target"]))
+    encoder = TargetEncoder(column_names=["feat", "excluded_variable"])
+    encoder.fit(X=df.select(["feat", "excluded_variable"]), y=df.select("target"))
+    actual = encoder.transform(X=df.select("feat"))
 
     expected = df.with_columns(
         pl.Series(name="feat_enc", values=encoded_feat_values_binary_cls)
-    ).select(["feat", "target", "feat_enc"])
+    ).select(["feat", "feat_enc"])
 
     assert_frame_equal(actual, expected)
 
@@ -337,16 +335,14 @@ def test_target_encoder_fit_transform(
         }
     )
 
-    encoder = TargetEncoder()
-    actual = encoder.fit_transform(
-        data=df, column_names=["variable"], target_column="target"
-    )
+    encoder = TargetEncoder(column_names=["variable"])
+    actual = encoder.fit_transform(X=df.select("variable"), y=df.select("target"))
 
     expected = df.with_columns(
         pl.Series(name="variable_enc", values=encoded_feat_values_binary_cls)
     )
 
-    assert_frame_equal(actual, expected)
+    assert_frame_equal(actual, expected.select(pl.exclude("target")))
 
 
 @pytest.mark.parametrize(
@@ -358,8 +354,8 @@ def test_target_encoder_fit_transform(
         ("test_column_cleaned", "test_column_enc"),
     ],
 )
-def test_target_encoder_clean_column_name_binned_column(cname, expected):
-    encoder = TargetEncoder()
+def test_target_encoder_clean_column_name(cname, expected):
+    encoder = TargetEncoder([])
     actual = encoder._clean_column_name(cname)
 
     assert actual == expected

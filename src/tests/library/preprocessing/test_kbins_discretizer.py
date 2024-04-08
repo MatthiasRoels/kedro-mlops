@@ -17,7 +17,7 @@ def does_not_raise():
 )
 def test_fit_exception(strategy, expectation):
     with expectation:
-        _ = KBinsDiscretizer(strategy=strategy)
+        _ = KBinsDiscretizer([], strategy=strategy)
 
 
 @pytest.mark.parametrize(
@@ -32,12 +32,13 @@ def test_fit(use_lazy_frame: bool, auto_adapt_bins: bool):
         data = data.lazy()
 
     discretizer = KBinsDiscretizer(
+        column_names=["variable"],
         n_bins=3,
         strategy="uniform",
         auto_adapt_bins=auto_adapt_bins,
     )
 
-    discretizer.fit(data, ["variable"])
+    discretizer.fit(data)
 
     actual_bin_edges = discretizer.bin_edges_by_column_["variable"]
     expected_bin_edges = [3.0, 6.0]
@@ -55,9 +56,9 @@ def test_fit(use_lazy_frame: bool, auto_adapt_bins: bool):
 
 
 def test_transform_when_not_fitted():
-    discretizer = KBinsDiscretizer()
+    discretizer = KBinsDiscretizer(column_names=[])
     with pytest.raises(NotFittedError):
-        discretizer.transform(data=pl.DataFrame())
+        discretizer.transform(X=pl.DataFrame())
 
 
 @pytest.mark.parametrize(
@@ -71,9 +72,11 @@ def test_transform(use_lazy_frame: bool):
     if use_lazy_frame:
         data = data.lazy()
 
-    discretizer = KBinsDiscretizer(n_bins=2, strategy="uniform")
+    discretizer = KBinsDiscretizer(
+        column_names=["variable"], n_bins=2, strategy="uniform"
+    )
 
-    discretizer.fit(data, ["variable"])
+    discretizer.fit(data)
 
     tf_data = discretizer.transform(data)
 
@@ -99,9 +102,11 @@ def test_transform_fewer_columns(use_lazy_frame: bool):
     if use_lazy_frame:
         data = data.lazy()
 
-    discretizer = KBinsDiscretizer(n_bins=2, strategy="uniform")
+    discretizer = KBinsDiscretizer(
+        column_names=["feat", "excluded_feat"], n_bins=2, strategy="uniform"
+    )
 
-    discretizer.fit(data, ["feat", "excluded_feat"])
+    discretizer.fit(data)
 
     tf_data = discretizer.transform(data.select(["feat"]))
 
@@ -119,9 +124,9 @@ def test_transform_fewer_columns(use_lazy_frame: bool):
 def test_fit_transform():
     data = pl.DataFrame({"feat": list(range(10))})
 
-    discretizer = KBinsDiscretizer(n_bins=2, strategy="uniform")
+    discretizer = KBinsDiscretizer(column_names=["feat"], n_bins=2, strategy="uniform")
 
-    tf_data = discretizer.fit_transform(data, ["feat"])
+    tf_data = discretizer.fit_transform(data)
 
     assert tf_data.dtypes == [pl.Categorical]
 
@@ -147,7 +152,9 @@ def test_fit_with_uniform_strategy(use_lazy_frame: bool, include_missing: bool):
 
     n_bins_by_column = {"variable": 3}
 
-    discretizer = KBinsDiscretizer(n_bins=3, strategy="uniform")
+    discretizer = KBinsDiscretizer(
+        column_names=["variable"], n_bins=3, strategy="uniform"
+    )
 
     discretizer._fit_with_uniform_strategy(data, n_bins_by_column)
 
@@ -178,7 +185,9 @@ def test_fit_with_quantile_strategy(use_lazy_frame: bool, include_missing: bool)
 
     n_bins_by_column = {"variable": 4}
 
-    discretizer = KBinsDiscretizer(n_bins=4, strategy="quantile", starting_precision=1)
+    discretizer = KBinsDiscretizer(
+        column_names=["variable"], n_bins=4, strategy="quantile", starting_precision=1
+    )
 
     discretizer._fit_with_quantile_strategy(data, n_bins_by_column)
 
@@ -203,7 +212,7 @@ def test_fit_with_quantile_strategy(use_lazy_frame: bool, include_missing: bool)
 )
 def test_validate_n_bins_exception(n_bins, expectation):
     with expectation:
-        assert KBinsDiscretizer()._validate_n_bins(n_bins=n_bins) is None
+        assert KBinsDiscretizer([])._validate_n_bins(n_bins=n_bins) is None
 
 
 @pytest.mark.parametrize(
@@ -226,7 +235,7 @@ def test_validate_n_bins_exception(n_bins, expectation):
 def test_compute_minimal_precision_of_bin_edges(
     bin_edges, starting_precision, expected
 ):
-    discretizer = KBinsDiscretizer(starting_precision=starting_precision)
+    discretizer = KBinsDiscretizer([], starting_precision=starting_precision)
 
     actual = discretizer._compute_minimal_precision_of_bin_edges(bin_edges)
 
@@ -246,7 +255,9 @@ def test_compute_minimal_precision_of_bin_edges(
 def test_create_bin_labels_from_edges(
     left_closed: bool, label_format: str, bin_edges: list, expected: list
 ):
-    discretizer = KBinsDiscretizer(left_closed=left_closed, label_format=label_format)
+    discretizer = KBinsDiscretizer(
+        [], left_closed=left_closed, label_format=label_format
+    )
 
     actual = discretizer._create_bin_labels_from_edges(bin_edges)
 

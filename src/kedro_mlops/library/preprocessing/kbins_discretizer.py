@@ -6,11 +6,11 @@ from itertools import pairwise
 # third party imports
 import numpy as np
 import polars as pl
-from sklearn.base import BaseEstimator
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.exceptions import NotFittedError
 
 
-class KBinsDiscretizer(BaseEstimator):
+class KBinsDiscretizer(BaseEstimator, TransformerMixin):
     """Bin continuous data into intervals of predefined size.
 
     It provides a way to partition continuous data into discrete values, i.e. transform
@@ -31,6 +31,8 @@ class KBinsDiscretizer(BaseEstimator):
     auto_adapt_bins : bool
         Reduces the number of bins (starting from n_bins) as a function of
         the number of Null/Nan values.
+    column_names: list
+        Names of the columns of the DataFrame to discretize
     label_format : str
         Format string to display the bin labels e.g. ``min - max``, ``(min, max]``, ...
         Defaults to None which then uses ``(min, max]``.
@@ -57,6 +59,7 @@ class KBinsDiscretizer(BaseEstimator):
 
     def __init__(
         self,
+        column_names: list,
         n_bins: int = 10,
         strategy: str = "quantile",
         left_closed: bool = False,
@@ -65,6 +68,7 @@ class KBinsDiscretizer(BaseEstimator):
         label_format: str | None = None,
     ):
         """Constructor for KBinsDiscretizer"""
+        self.column_names = column_names
         # validate number of bins
         self._validate_n_bins(n_bins)
 
@@ -88,23 +92,21 @@ class KBinsDiscretizer(BaseEstimator):
         self.bin_edges_by_column_ = {}
         self.bin_labels_by_column_ = {}
 
-    def fit(self, data: pl.LazyFrame | pl.DataFrame, column_names: list):
+    def fit(self, X: pl.LazyFrame | pl.DataFrame):
         """Fits the estimator
 
         Parameters
         ----------
-        data : pl.LazyFrame | pl.DataFrame
+        X : pl.LazyFrame | pl.DataFrame
             Data to be discretized
-        column_names : list
-            Names of the columns of the DataFrame to discretize
         """
-        cname_list = [cname for cname in column_names if cname in data.columns]
+        cname_list = [cname for cname in self.column_names if cname in X.columns]
 
         n_bins_by_column = {cname: self.n_bins for cname in cname_list}
         if self.auto_adapt_bins:
             # compute percentage of Null/Nan values and use that to adapt bin size
             # per column
-            res = data.select((pl.all().is_null() + pl.all().is_nan()).sum() / pl.len())
+            res = X.select((pl.all().is_null() + pl.all().is_nan()).sum() / pl.len())
             if isinstance(res, pl.LazyFrame):
                 res = res.collect()
             missing_pct_by_col = {
@@ -119,20 +121,18 @@ class KBinsDiscretizer(BaseEstimator):
             }
 
         if self.strategy == "uniform":
-            self._fit_with_uniform_strategy(data, n_bins_by_column)
+            self._fit_with_uniform_strategy(X, n_bins_by_column)
         else:
             # already tested separately
-            self._fit_with_quantile_strategy(data, n_bins_by_column)  # pragma: no cover
+            self._fit_with_quantile_strategy(X, n_bins_by_column)  # pragma: no cover
 
-    def transform(
-        self, data: pl.LazyFrame | pl.DataFrame
-    ) -> pl.LazyFrame | pl.DataFrame:
+    def transform(self, X: pl.LazyFrame | pl.DataFrame) -> pl.LazyFrame | pl.DataFrame:
         """Discretizes the data in the given list of columns by mapping each
         number to the appropriate bin computed by the fit method
 
         Parameters
         ----------
-        data : data: pl.LazyFrame | pl.DataFrame
+        X : data: pl.LazyFrame | pl.DataFrame
             Data to be discretized
 
         Returns
@@ -165,37 +165,35 @@ class KBinsDiscretizer(BaseEstimator):
 
             return expr
 
-        data = data.with_columns(
+        X = X.with_columns(
             cut(
                 cname=cname,
                 edges=self.bin_edges_by_column_[cname],
                 labels=self.bin_labels_by_column_[cname],
             ).alias(cname)
             for cname in self.bin_edges_by_column_
-            if cname in data.columns
+            if cname in X.columns
         )
 
-        return data
+        return X
 
     def fit_transform(
-        self, data: pl.LazyFrame | pl.DataFrame, column_names: list
+        self, X: pl.LazyFrame | pl.DataFrame
     ) -> pl.LazyFrame | pl.DataFrame:
         """Fits to data, then transform it
 
         Parameters
         ----------
-        data : pl.LazyFrame | pl.DataFrame
+        X : pl.LazyFrame | pl.DataFrame
             Data to be discretized
-        column_names : list
-            Names of the columns of the DataFrame to discretize
 
         Returns
         -------
         pl.LazyFrame | pl.DataFrame
             data with discretized variables
         """
-        self.fit(data, column_names)
-        return self.transform(data)
+        self.fit(X)
+        return self.transform(X)
 
     def _fit_with_uniform_strategy(
         self, data: pl.LazyFrame | pl.DataFrame, n_bins_by_column: dict

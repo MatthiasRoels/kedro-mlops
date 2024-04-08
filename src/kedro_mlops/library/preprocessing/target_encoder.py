@@ -1,13 +1,13 @@
 import logging
 
 import polars as pl
-from sklearn.base import BaseEstimator
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.exceptions import NotFittedError
 
 logger = logging.getLogger(__name__)
 
 
-class TargetEncoder(BaseEstimator):
+class TargetEncoder(BaseEstimator, TransformerMixin):
     """Target encoding for categorical features
 
     This was inspired by
@@ -65,8 +65,12 @@ class TargetEncoder(BaseEstimator):
 
     valid_imputation_strategies = ("mean", "min", "max")
 
-    def __init__(self, weight: float = 0.0, imputation_strategy: str = "mean"):
+    def __init__(
+        self, column_names: list, weight: float = 0.0, imputation_strategy: str = "mean"
+    ):
         """Constructor for TargetEncoder"""
+        self.column_names = column_names
+
         if weight < 0:
             raise ValueError("The value of weight cannot be smaller than zero.")
         elif imputation_strategy not in self.valid_imputation_strategies:
@@ -90,9 +94,7 @@ class TargetEncoder(BaseEstimator):
         # placeholder for the global incidence of the data used for fitting
         self.global_mean_ = None
 
-    def fit(
-        self, data: pl.LazyFrame | pl.DataFrame, column_names: list, target_column: str
-    ):
+    def fit(self, X: pl.LazyFrame | pl.DataFrame, y: pl.LazyFrame | pl.DataFrame):
         """Fit the TargetEncoder to the data.
 
         Parameters
@@ -100,13 +102,12 @@ class TargetEncoder(BaseEstimator):
         X : pl.DataFrame | pl.LazyFrame
             train data used to compute the mapping to encode the categorical
             variables with.
-        column_names : list
-            Columns of data to be encoded.
-        target_column : str
-            Column name of the target.
+        y : pl.DataFrame | pl.LazyFrame
+            target
         """
+        target_column = y.columns[0]
         # compute global mean (target incidence in case of binary target)
-        stats = data.select(pl.sum(target_column).alias("sum"), pl.len().alias("count"))
+        stats = y.select(pl.sum(target_column).alias("sum"), pl.len().alias("count"))
 
         if isinstance(stats, pl.LazyFrame):
             stats = stats.collect()
@@ -115,10 +116,12 @@ class TargetEncoder(BaseEstimator):
 
         self.global_mean_ = stats["sum"][0] / stats["count"][0]
 
-        cname_list = [cname for cname in column_names if cname in data.columns]
+        cname_list = [cname for cname in self.column_names if cname in X.columns]
 
         results = [
-            data.group_by(cname)
+            X.lazy()
+            .with_context(y.lazy())
+            .group_by(cname)
             .agg(pl.mean(target_column).alias("mean"), pl.len().alias("count"))
             .with_columns(
                 cname=pl.lit(cname),
@@ -132,15 +135,13 @@ class TargetEncoder(BaseEstimator):
         ]
 
         for frame in results:
-            for row in frame.lazy().collect().iter_rows(named=True):
+            for row in frame.collect().iter_rows(named=True):
                 if row["cname"] in self.mapping_:
                     self.mapping_[row["cname"]].update({row["value"]: row["incidence"]})
                 else:
                     self.mapping_[row["cname"]] = {row["value"]: row["incidence"]}
 
-    def transform(
-        self, data: pl.LazyFrame | pl.DataFrame
-    ) -> pl.LazyFrame | pl.DataFrame:
+    def transform(self, X: pl.LazyFrame | pl.DataFrame) -> pl.LazyFrame | pl.DataFrame:
         """Replace (e.g. encode) values of each categorical column with a
         new value (reflecting the corresponding average target value,
         optionally smoothed by a regularization weight),
@@ -148,7 +149,7 @@ class TargetEncoder(BaseEstimator):
 
         Parameters
         ----------
-        data : pl.LazyFrame | pl.DataFrame
+        X : pl.LazyFrame | pl.DataFrame
             Data to encode.
 
         Returns
@@ -169,7 +170,7 @@ class TargetEncoder(BaseEstimator):
             )
             raise NotFittedError(msg.format(self.__class__.__name__))
 
-        data = data.with_columns(
+        X = X.with_columns(
             pl.col(cname)
             .replace(
                 self.mapping_[cname],
@@ -177,32 +178,31 @@ class TargetEncoder(BaseEstimator):
             )
             .alias(self._clean_column_name(cname))
             for cname in self.mapping_
-            if cname in data.columns
+            if cname in X.columns
         )
 
-        return data
+        return X
 
     def fit_transform(
-        self, data: pl.LazyFrame | pl.DataFrame, column_names: list, target_column: str
+        self, X: pl.LazyFrame | pl.DataFrame, y: pl.LazyFrame | pl.DataFrame
     ) -> pl.LazyFrame | pl.DataFrame:
         """Fit the encoder and transform the data.
 
         Parameters
         ----------
-        data : pd.DataFrame
-            Data to be encoded.
-        column_names : list
-            Columns of data to be encoded.
-        target_column : str
-            Column name of the target.
+        X : pl.DataFrame | pl.LazyFrame
+            train data used to compute the mapping to encode the categorical
+            variables with.
+        y : pl.DataFrame | pl.LazyFrame
+            target
 
         Returns
         -------
         pd.DataFrame
             Data with additional columns, holding the target-encoded variables.
         """
-        self.fit(data, column_names, target_column)
-        return self.transform(data)
+        self.fit(X, y)
+        return self.transform(X)
 
     def _get_impute_value(self, incidences: list) -> float:
         """Impute missing data based on the given strategy.

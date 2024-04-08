@@ -1,9 +1,9 @@
 import polars as pl
-from sklearn.base import BaseEstimator
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.exceptions import NotFittedError
 
 
-class VarianceThreshold(BaseEstimator):
+class VarianceThreshold(BaseEstimator, TransformerMixin):
     """Feature selector that removes all low-variance features.
 
     It is loosely inspired by
@@ -26,7 +26,7 @@ class VarianceThreshold(BaseEstimator):
 
         self.columns_to_drop_ = None
 
-    def fit(self, data: pl.DataFrame | pl.LazyFrame):
+    def fit(self, X: pl.DataFrame | pl.LazyFrame):
         """Learn empircal variances of the data
 
         To also include non-numeric data, we will first transform it into numeric data
@@ -34,10 +34,10 @@ class VarianceThreshold(BaseEstimator):
 
         Parameters
         ----------
-        data : pl.LazyFrame | pl.DataFrame
+        X : pl.LazyFrame | pl.DataFrame
             Data from which to compute variances
         """
-        variances = data.select(
+        variances = X.select(
             pl.col(pl.NUMERIC_DTYPES),
             pl.all().exclude(pl.NUMERIC_DTYPES).rank(method="dense"),
         ).select(pl.all().var())
@@ -54,14 +54,12 @@ class VarianceThreshold(BaseEstimator):
             if var <= self.threshold
         ]
 
-    def transform(
-        self, data: pl.DataFrame | pl.LazyFrame
-    ) -> pl.DataFrame | pl.LazyFrame:
+    def transform(self, X: pl.DataFrame | pl.LazyFrame) -> pl.DataFrame | pl.LazyFrame:
         """Reduce data to only include selected features
 
         Parameters
         ----------
-        data : pl.LazyFrame | pl.DataFrame
+        X : pl.LazyFrame | pl.DataFrame
             Data to transform
 
         Returns
@@ -77,18 +75,18 @@ class VarianceThreshold(BaseEstimator):
 
             raise NotFittedError(msg.format(self.__class__.__name__))
 
-        return data.select(
-            cname for cname in data.columns if cname not in self.columns_to_drop_
+        return X.select(
+            cname for cname in X.columns if cname not in self.columns_to_drop_
         )
 
     def fit_transform(
-        self, data: pl.DataFrame | pl.LazyFrame
+        self, X: pl.DataFrame | pl.LazyFrame
     ) -> pl.DataFrame | pl.LazyFrame:
         """Fits to data, then transform it
 
         Parameters
         ----------
-        data : pl.LazyFrame | pl.DataFrame
+        X : pl.LazyFrame | pl.DataFrame
             Data to transform
 
         Returns
@@ -96,5 +94,5 @@ class VarianceThreshold(BaseEstimator):
         pl.LazyFrame | pl.DataFrame
             data with only selected features
         """
-        self.fit(data)
-        return self.transform(data)
+        self.fit(X)
+        return self.transform(X)
