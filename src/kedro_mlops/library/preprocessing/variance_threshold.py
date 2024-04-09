@@ -26,7 +26,7 @@ class VarianceThreshold(BaseEstimator, TransformerMixin):
 
         self.columns_to_drop_ = None
 
-    def fit(self, X: pl.DataFrame | pl.LazyFrame):
+    def fit(self, X: pl.DataFrame | pl.LazyFrame, y=None):
         """Learn empircal variances of the data
 
         To also include non-numeric data, we will first transform it into numeric data
@@ -36,6 +36,7 @@ class VarianceThreshold(BaseEstimator, TransformerMixin):
         ----------
         X : pl.LazyFrame | pl.DataFrame
             Data from which to compute variances
+        y: placeholder for compatibility with scikit-learn's TransformerMixin
         """
         variances = X.select(
             pl.col(pl.NUMERIC_DTYPES),
@@ -80,7 +81,7 @@ class VarianceThreshold(BaseEstimator, TransformerMixin):
         )
 
     def fit_transform(
-        self, X: pl.DataFrame | pl.LazyFrame
+        self, X: pl.DataFrame | pl.LazyFrame, y=None
     ) -> pl.DataFrame | pl.LazyFrame:
         """Fits to data, then transform it
 
@@ -88,6 +89,7 @@ class VarianceThreshold(BaseEstimator, TransformerMixin):
         ----------
         X : pl.LazyFrame | pl.DataFrame
             Data to transform
+        y: placeholder for compatibility with scikit-learn's TransformerMixin
 
         Returns
         -------

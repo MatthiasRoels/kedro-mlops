@@ -92,13 +92,14 @@ class KBinsDiscretizer(BaseEstimator, TransformerMixin):
         self.bin_edges_by_column_ = {}
         self.bin_labels_by_column_ = {}
 
-    def fit(self, X: pl.LazyFrame | pl.DataFrame):
+    def fit(self, X: pl.LazyFrame | pl.DataFrame, y=None):
         """Fits the estimator
 
         Parameters
         ----------
         X : pl.LazyFrame | pl.DataFrame
             Data to be discretized
+        y: placeholder for compatibility with scikit-learn's TransformerMixin
         """
         cname_list = [cname for cname in self.column_names if cname in X.columns]
 
@@ -178,7 +179,7 @@ class KBinsDiscretizer(BaseEstimator, TransformerMixin):
         return X
 
     def fit_transform(
-        self, X: pl.LazyFrame | pl.DataFrame
+        self, X: pl.LazyFrame | pl.DataFrame, y=None
     ) -> pl.LazyFrame | pl.DataFrame:
         """Fits to data, then transform it
 
@@ -186,6 +187,7 @@ class KBinsDiscretizer(BaseEstimator, TransformerMixin):
         ----------
         X : pl.LazyFrame | pl.DataFrame
             Data to be discretized
+        y: placeholder for compatibility with scikit-learn's TransformerMixin
 
         Returns
         -------

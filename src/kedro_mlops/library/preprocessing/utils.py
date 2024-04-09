@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 def stratified_train_test_split_binary_target(
     data: pl.DataFrame | pl.LazyFrame,
-    target: str,
+    target_column: str,
     test_size: float,
     shuffle_data: bool = False,
     random_seed: int | None = None,
@@ -24,6 +24,8 @@ def stratified_train_test_split_binary_target(
     ----------
     data : pl.DataFrame | pl.LazyFrame
         Input dataset to split into train-test sets.
+    target_column: str
+        Column name of the target.
     test_size : float, optional
         Percentage of data to put in test set.
     shuffle_data : float, optional
@@ -38,7 +40,7 @@ def stratified_train_test_split_binary_target(
         DataFrame with additional split column.
     """
     cnames = data.columns
-    example_col = cnames[0] if cnames[0] != target else cnames[1]
+    example_col = cnames[0] if cnames[0] != target_column else cnames[1]
     if shuffle_data:
         if isinstance(data, pl.LazyFrame):
             df = data.collect().sample(fraction=1.0, seed=random_seed).lazy()
@@ -47,14 +49,14 @@ def stratified_train_test_split_binary_target(
     else:
         df = data.select(pl.all())
 
-    res = df.group_by(target).len()
+    res = df.group_by(target_column).len()
 
     if isinstance(res, pl.LazyFrame):
         res = res.collect()
 
     row_counts_raw = res.to_dict(as_series=False)
     row_counts = {
-        str(k): v for k, v in zip(row_counts_raw[target], row_counts_raw["len"])
+        str(k): v for k, v in zip(row_counts_raw[target_column], row_counts_raw["len"])
     }
 
     # Add a row_number partitioned by the target and use it to compute the splits
@@ -62,16 +64,16 @@ def stratified_train_test_split_binary_target(
     # test set with the correct proportion of the target
     return (
         df.with_columns(
-            row_number=pl.col(example_col).rank(method="ordinal").over(target)
+            row_number=pl.col(example_col).rank(method="ordinal").over(target_column)
         )
         .with_columns(
             split=pl.when(
-                pl.col(target) == 1,
+                pl.col(target_column) == 1,
                 pl.col("row_number") <= row_counts["1"] * test_size,
             )
             .then(pl.lit("test"))
             .when(
-                pl.col(target) == 0,
+                pl.col(target_column) == 0,
                 pl.col("row_number") <= row_counts["0"] * test_size,
             )
             .then(pl.lit("test"))
@@ -137,7 +139,7 @@ def train_test_split_continuous_target(
 
 def univariate_feature_selection_classification(
     data: pl.DataFrame | pl.LazyFrame,
-    target: str,
+    target_column: str,
     threshold: float = 0.5,
 ) -> pl.DataFrame | pl.LazyFrame:
     """Perform a preselection of features based on the ROC AUC score of
@@ -157,7 +159,7 @@ def univariate_feature_selection_classification(
     ----------
     data: pl.DataFrame | pl.LazyFrame,
         Input data
-    target : str
+    target_column: str
         Name of the target column.
     threshold : float, optional
         Threshold on min. AUC to select the features
@@ -172,10 +174,10 @@ def univariate_feature_selection_classification(
             data.select(
                 cname=pl.lit(cname),
                 # part of polars-ds package:
-                roc_auc=pl.col(target).metric.roc_auc(pl.col(cname)),
+                roc_auc=pl.col(target_column).metric.roc_auc(pl.col(cname)),
             )
             for cname in data.columns
-            if cname != target
+            if cname != target_column
         ]
     )
 
@@ -196,7 +198,7 @@ def univariate_feature_selection_classification(
 
 def univariate_feature_selection_regression(
     data: pl.DataFrame | pl.LazyFrame,
-    target: str,
+    target_column: str,
     threshold: float = 5,
 ) -> pl.DataFrame | pl.LazyFrame:
     """Perform a preselection of features based on the RMSE score of a univariate model.
@@ -205,7 +207,7 @@ def univariate_feature_selection_regression(
     ----------
     data: pl.DataFrame | pl.LazyFrame,
         Input data
-    target : str
+    target_column: str
         Name of the target column.
     threshold : float, optional
         Threshold on max. RMSE to select the features
@@ -222,10 +224,12 @@ def univariate_feature_selection_regression(
             data.select(
                 cname=pl.lit(cname),
                 # part of polars-ds package:
-                rmse=((pl.col(target) - pl.col(cname)) ** 2 / num_rows).sum().sqrt(),
+                rmse=((pl.col(target_column) - pl.col(cname)) ** 2 / num_rows)
+                .sum()
+                .sqrt(),
             )
             for cname in data.columns
-            if cname != target
+            if cname != target_column
         ]
     )
 
