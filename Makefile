@@ -4,7 +4,7 @@ test:
 	pytest src/tests/
 
 integration-test:
-	kedro run --env=test --async
+	python -m kedro run --env=test --async
 
 install-pre-commit:
 	pre-commit install --install-hooks

@@ -7,3 +7,10 @@ scikit-learn
 xgboost
 shap
 mlflow-skinny
+# dev requirements
+pre-commit
+pre-commit-hooks
+ruff
+pytest
+pytest-cov
+pytest-mock
