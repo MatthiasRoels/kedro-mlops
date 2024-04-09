@@ -38,6 +38,7 @@ def create_pipeline(**kwargs) -> Pipeline:  # pragma: no cover
                 func=apply_variance_threshold,
                 inputs=[
                     "train_test_set",
+                    "params:input_data_schema.target",
                     "params:preprocessing.variance_threshold.threshold",
                 ],
                 outputs="filtered_train_test_set",

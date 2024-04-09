@@ -11,6 +11,7 @@ from .variance_threshold import VarianceThreshold
 
 def apply_variance_threshold(
     data: pl.DataFrame | pl.LazyFrame,
+    target_column: str | None = None,
     threshold: float = 0,
 ) -> pl.DataFrame | pl.LazyFrame:
     """Wrapper function around VarianceThreshold
@@ -19,6 +20,12 @@ def apply_variance_threshold(
     ----------
     data : pl.LazyFrame | pl.DataFrame
         Data on which a feature pre-selection is performed
+    target_column: str
+        Column name of the target.
+    threshold: float
+        Features with a training-set variance lower than this threshold will
+        be removed. The default is to keep all features with non-zero variance,
+        i.e. remove the features that have the same value in all samples.
 
     Returns
     -------
@@ -26,7 +33,12 @@ def apply_variance_threshold(
         data with only selected features
     """
     variance_threshold = VarianceThreshold(threshold)
-    return variance_threshold.fit_transform(data)
+    variance_threshold.fit(
+        data.filter(pl.col("split") == "train").select(
+            pl.exclude(["split", target_column])
+        )
+    )
+    return variance_threshold.transform(data)
 
 
 def fit_discretizer(
@@ -51,8 +63,10 @@ def fit_discretizer(
         Fitted estimator
 
     """
-    discretizer = KBinsDiscretizer(**discretizer_config)
-    discretizer.fit(data.filter(pl.col("split") == "train"), column_names)
+    discretizer = KBinsDiscretizer(
+        **{**discretizer_config, "column_names": column_names}
+    )
+    discretizer.fit(data.filter(pl.col("split") == "train"))
 
     return discretizer
 
@@ -71,7 +85,7 @@ def fit_encoder(
     column_names: list
         Names of the columns of the DataFrame to be encoded
     target_column : str
-            Column name of the target.
+        Column name of the target.
     encoder_config: dict
         input parameter for class constructor
 
@@ -87,8 +101,12 @@ def fit_encoder(
         excluded = [*excluded, *pk_col]
 
     column_names = [cname for cname in data.columns if cname not in excluded]
-    encoder = TargetEncoder(**encoder_config)
-    encoder.fit(data.filter(pl.col("split") == "train"), column_names, target_column)
+    encoder = TargetEncoder(**{**encoder_config, "column_names": column_names})
+
+    encoder.fit(
+        X=data.filter(pl.col("split") == "train").select(column_names),
+        y=data.filter(pl.col("split") == "train").select(target_column),
+    )
 
     return encoder
 
@@ -103,7 +121,7 @@ def transform_data(
 
 def prepare_train_data(
     data: pl.DataFrame | pl.LazyFrame,
-    target: str,
+    target_column: str,
     threshold: float,
 ) -> pl.DataFrame:
     """Wrapper around univariate_feature_selection_classification utils function
@@ -114,7 +132,7 @@ def prepare_train_data(
     ----------
     data: pl.DataFrame | pl.LazyFrame,
         Input data
-    target : str
+    target_column: str
         Name of the target column.
     threshold : float, optional
         Threshold on min. AUC to select the features
@@ -125,11 +143,15 @@ def prepare_train_data(
         Pepared dataset for training
     """
     train_data = data.filter(pl.col("split") == "train").select(
-        [cname for cname in data.columns if cname.endswith("_enc") or cname == target]
+        [
+            cname
+            for cname in data.columns
+            if cname.endswith("_enc") or cname == target_column
+        ]
     )
 
     prepared_train_data = univariate_feature_selection_classification(
-        train_data, target, threshold
+        train_data, target_column, threshold
     )
 
     return materialize_data(prepared_train_data)
