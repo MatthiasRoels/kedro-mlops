@@ -12,20 +12,23 @@ To do.
 
 ### How to install dependencies
 
-Declare any dependencies in `requirements.txt` for `pip` installation.
+Declare any dependencies in `pyproject.toml` using `uv add [package-name]`. 
+This will also create a virtual environment `.venv` if not exists and installs the package.
 
-To install them, run:
+To create a virtual environment and install all dependencies, run:
 
 ```
-pip install -r requirements.txt
+uv sync --frozen 
 ```
+
+Add a `--no-dev` flag to omit installation of dev dependencies.
 
 ### How to run your Kedro pipeline
 
 You can run your Kedro project with:
 
 ```
-kedro run
+uv run kedro run
 ```
 
 ### Comparing gradient boosting packages
