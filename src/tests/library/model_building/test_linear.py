@@ -1,13 +1,14 @@
 import numpy as np
 import polars as pl
 import pytest
+from sklearn.datasets import load_breast_cancer
+from sklearn.linear_model import LogisticRegression
+
 from kedro_mlops.library.model_building.linear import (
     get_predictions,
     sequential_feature_selection,
     train_model,
 )
-from sklearn.datasets import load_breast_cancer
-from sklearn.linear_model import LogisticRegression
 
 
 @pytest.fixture(scope="module")

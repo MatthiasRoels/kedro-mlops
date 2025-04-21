@@ -1,11 +1,18 @@
-[build-system]
-requires = [ "setuptools",]
-build-backend = "setuptools.build_meta"
-
 [project]
+requires-python = ">=3.11"
 name = "kedro_mlops"
 readme = "README.md"
-dynamic = [ "dependencies", "version",]
+dynamic = ["version",]
+dependencies = [
+    "kedro>=0.19.12",
+    "kedro-datasets[polars]>=6.0.0",
+    "mlflow-skinny>=2.21.3",
+    "pandas[aws]>=2.2.3",
+    "polars-ds>=0.8.3",
+    "polars[fsspec,pandas]>=1.27.1",
+    "scikit-learn>=1.6.1",
+    "xgboost-cpu>=3.0.0",
+]
 
 [project.scripts]
 kedro-mlops = "kedro_mlops.__main__:main"
@@ -13,7 +20,7 @@ kedro-mlops = "kedro_mlops.__main__:main"
 [tool.kedro]
 package_name = "kedro_mlops"
 project_name = "kedro-mlops"
-kedro_init_version = "0.19.2"
+kedro_init_version = "0.19.12"
 tools = [ "Linting", "Testing", "Data Structure", "Kedro Viz",]
 example_pipeline = "False"
 source_dir = "src"
@@ -164,13 +171,10 @@ omit = [
     "src/kedro_mlops/settings.py",
 ]
 
-
-[tool.setuptools.dynamic.dependencies]
-file = "requirements.txt"
-
-[tool.setuptools.dynamic.version]
-attr = "kedro_mlops.__version__"
-
-[tool.setuptools.packages.find]
-where = [ "src",]
-namespaces = false
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+    "pytest-cov>=6.1.1",
+    "pytest-env>=1.1.5",
+    "pytest-mock>=3.14.0",
+]

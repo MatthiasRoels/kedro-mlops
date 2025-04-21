@@ -51,7 +51,7 @@ class VarianceThreshold(BaseEstimator, TransformerMixin):
 
         self.columns_to_drop_ = [
             cname
-            for cname, var in zip(raw["column"], raw["column_0"])
+            for cname, var in zip(raw["column"], raw["column_0"], strict=False)
             if var <= self.threshold
         ]
 

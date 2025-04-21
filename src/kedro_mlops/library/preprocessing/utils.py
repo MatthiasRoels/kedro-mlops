@@ -56,7 +56,10 @@ def stratified_train_test_split_binary_target(
 
     row_counts_raw = res.to_dict(as_series=False)
     row_counts = {
-        str(k): v for k, v in zip(row_counts_raw[target_column], row_counts_raw["len"])
+        str(k): v
+        for k, v in zip(
+            row_counts_raw[target_column], row_counts_raw["len"], strict=False
+        )
     }
 
     # Add a row_number partitioned by the target and use it to compute the splits

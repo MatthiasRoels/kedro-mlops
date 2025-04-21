@@ -77,10 +77,8 @@ class KBinsDiscretizer(BaseEstimator, TransformerMixin):
 
         if self.strategy not in self.valid_strategies:
             raise ValueError(
-                "{}: valid options for 'strategy' are {}. "
-                "Got strategy={!r} instead.".format(
-                    KBinsDiscretizer.__name__, self.valid_strategies, self.strategy
-                )
+                f"{KBinsDiscretizer.__name__}: valid options for 'strategy' are {self.valid_strategies}. "
+                f"Got strategy={self.strategy!r} instead."
             )
 
         self.left_closed = left_closed
@@ -160,7 +158,7 @@ class KBinsDiscretizer(BaseEstimator, TransformerMixin):
             expr = pl.when(pl.col(cname).is_null() | pl.col(cname).is_nan()).then(
                 pl.lit("Missing", pl.Categorical)
             )
-            for edge, label in zip(edges, labels[:-1]):
+            for edge, label in zip(edges, labels[:-1], strict=False):
                 expr = expr.when(operation(pl.col(cname), edge)).then(label)
             expr = expr.otherwise(labels[-1])
 
@@ -280,7 +278,7 @@ class KBinsDiscretizer(BaseEstimator, TransformerMixin):
         bin_edges_dict = res.to_dict(as_series=False)
 
         for cname, bin_edges_raw in zip(
-            bin_edges_dict["cname"], bin_edges_dict["bin_edges"]
+            bin_edges_dict["cname"], bin_edges_dict["bin_edges"], strict=False
         ):
             bin_edges = sorted(list(set(bin_edges_raw)))
 
@@ -391,7 +389,7 @@ class KBinsDiscretizer(BaseEstimator, TransformerMixin):
 
         bin_labels = [
             label_format.format(interval[0], interval[1])
-            for interval in zip(bin_edges, bin_edges[1:])
+            for interval in zip(bin_edges, bin_edges[1:], strict=False)  # noqa: RUF007
         ]
 
         return [first_label, *bin_labels, last_label]

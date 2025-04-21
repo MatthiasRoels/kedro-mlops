@@ -1,8 +1,9 @@
 import polars as pl
 import pytest
-from kedro_mlops.library.preprocessing.target_encoder import TargetEncoder
 from polars.testing import assert_frame_equal
 from sklearn.exceptions import NotFittedError
+
+from kedro_mlops.library.preprocessing.target_encoder import TargetEncoder
 
 
 @pytest.fixture(scope="module")
