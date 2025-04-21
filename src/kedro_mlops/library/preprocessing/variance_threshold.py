@@ -1,4 +1,5 @@
 import polars as pl
+import polars.selectors as cs
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.exceptions import NotFittedError
 
@@ -39,8 +40,8 @@ class VarianceThreshold(BaseEstimator, TransformerMixin):
         y: placeholder for compatibility with scikit-learn's TransformerMixin
         """
         variances = X.select(
-            pl.col(pl.NUMERIC_DTYPES),
-            pl.all().exclude(pl.NUMERIC_DTYPES).rank(method="dense"),
+            cs.numeric(),
+            cs.exclude(cs.numeric()).rank(method="dense"),
         ).select(pl.all().var())
 
         if isinstance(variances, pl.LazyFrame):
@@ -77,7 +78,9 @@ class VarianceThreshold(BaseEstimator, TransformerMixin):
             raise NotFittedError(msg.format(self.__class__.__name__))
 
         return X.select(
-            cname for cname in X.columns if cname not in self.columns_to_drop_
+            cname
+            for cname in X.collect_schema().names()
+            if cname not in self.columns_to_drop_
         )
 
     def fit_transform(

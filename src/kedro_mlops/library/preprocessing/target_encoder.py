@@ -105,7 +105,7 @@ class TargetEncoder(BaseEstimator, TransformerMixin):
         y : pl.DataFrame | pl.LazyFrame
             target
         """
-        target_column = y.columns[0]
+        target_column = y.collect_schema().names()[0]
         # compute global mean (target incidence in case of binary target)
         stats = y.select(pl.sum(target_column).alias("sum"), pl.len().alias("count"))
 
@@ -116,11 +116,14 @@ class TargetEncoder(BaseEstimator, TransformerMixin):
 
         self.global_mean_ = stats["sum"][0] / stats["count"][0]
 
-        cname_list = [cname for cname in self.column_names if cname in X.columns]
+        cname_list = [
+            cname for cname in self.column_names if cname in X.collect_schema().names()
+        ]
 
+        # Note: we cannot concat here because the "value" columns have different dtypes!
         results = [
-            X.lazy()
-            .with_context(y.lazy())
+            pl.concat([X, y], how="horizontal")
+            .lazy()
             .group_by(cname)
             .agg(pl.mean(target_column).alias("mean"), pl.len().alias("count"))
             .with_columns(
@@ -135,7 +138,7 @@ class TargetEncoder(BaseEstimator, TransformerMixin):
         ]
 
         for frame in results:
-            for row in frame.collect().iter_rows(named=True):
+            for row in frame.collect().to_dicts():
                 if row["cname"] in self.mapping_:
                     self.mapping_[row["cname"]].update({row["value"]: row["incidence"]})
                 else:
@@ -172,13 +175,13 @@ class TargetEncoder(BaseEstimator, TransformerMixin):
 
         X = X.with_columns(
             pl.col(cname)
-            .replace(
+            .replace_strict(
                 self.mapping_[cname],
                 default=self._get_impute_value(list(self.mapping_[cname].values())),
             )
             .alias(self._clean_column_name(cname))
             for cname in self.mapping_
-            if cname in X.columns
+            if cname in X.collect_schema().names()
         )
 
         return X

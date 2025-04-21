@@ -29,7 +29,7 @@ def mod_params() -> dict:
             },
         },
         "sequential_feature_selection_kwargs": {
-            "tol": 10e-3,
+            "n_features_to_select": 2,
             "direction": "forward",
             "scoring": "roc_auc",
             "cv": 5,
@@ -39,7 +39,7 @@ def mod_params() -> dict:
 
 def test_sequential_feature_selection(data, mod_params):
     actual = sequential_feature_selection(data, "target", mod_params)
-    expected = ["worst perimeter"]
+    expected = ["worst perimeter", "worst smoothness"]
 
     assert list(actual) == expected
 

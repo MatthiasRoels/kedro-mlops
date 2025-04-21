@@ -1,7 +1,7 @@
 import logging
 
 import polars as pl
-import polars_ds as pld  # noqa: F401
+import polars_ds as pds
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ def stratified_train_test_split_binary_target(
     pl.DataFrame | pl.LazyFrame
         DataFrame with additional split column.
     """
-    cnames = data.columns
+    cnames = data.collect_schema().names()
     example_col = cnames[0] if cnames[0] != target_column else cnames[1]
     if shuffle_data:
         if isinstance(data, pl.LazyFrame):
@@ -177,9 +177,9 @@ def univariate_feature_selection_classification(
             data.select(
                 cname=pl.lit(cname),
                 # part of polars-ds package:
-                roc_auc=pl.col(target_column).metric.roc_auc(pl.col(cname)),
+                roc_auc=pds.query_roc_auc(target_column, cname),
             )
-            for cname in data.columns
+            for cname in data.collect_schema().names()
             if cname != target_column
         ]
     )
@@ -195,7 +195,11 @@ def univariate_feature_selection_classification(
     dropped_features = dropped_features.to_dict(as_series=False)["cname"]
 
     return data.select(
-        [cname for cname in data.columns if cname not in dropped_features]
+        [
+            cname
+            for cname in data.collect_schema().names()
+            if cname not in dropped_features
+        ]
     )
 
 
@@ -226,12 +230,11 @@ def univariate_feature_selection_regression(
         [
             data.select(
                 cname=pl.lit(cname),
-                # part of polars-ds package:
                 rmse=((pl.col(target_column) - pl.col(cname)) ** 2 / num_rows)
                 .sum()
                 .sqrt(),
             )
-            for cname in data.columns
+            for cname in data.collect_schema().names()
             if cname != target_column
         ]
     )
@@ -246,5 +249,9 @@ def univariate_feature_selection_regression(
     dropped_features = dropped_features.to_dict(as_series=False)["cname"]
 
     return data.select(
-        [cname for cname in data.columns if cname not in dropped_features]
+        [
+            cname
+            for cname in data.collect_schema().names()
+            if cname not in dropped_features
+        ]
     )

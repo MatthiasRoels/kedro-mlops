@@ -99,21 +99,25 @@ class KBinsDiscretizer(BaseEstimator, TransformerMixin):
             Data to be discretized
         y: placeholder for compatibility with scikit-learn's TransformerMixin
         """
-        cname_list = [cname for cname in self.column_names if cname in X.columns]
+        cname_list = [
+            cname for cname in self.column_names if cname in X.collect_schema().names()
+        ]
 
         n_bins_by_column = {cname: self.n_bins for cname in cname_list}
         if self.auto_adapt_bins:
             # compute percentage of Null/Nan values and use that to adapt bin size
             # per column
-            res = X.select((pl.all().is_null() + pl.all().is_nan()).sum() / pl.len())
-            if isinstance(res, pl.LazyFrame):
-                res = res.collect()
+            res = (
+                X.lazy()
+                .select((pl.all().is_null().sum() + pl.all().is_nan().sum()) / pl.len())
+                .collect()
+            )
+
             missing_pct_by_col = {
                 k: v[0]
                 for k, v in res.to_dict(as_series=False).items()
                 if k in cname_list
             }
-
             n_bins_by_column = {
                 cname: int(max(round((1 - missing_pct_by_col[cname]) * self.n_bins), 2))
                 for cname in cname_list
@@ -171,7 +175,7 @@ class KBinsDiscretizer(BaseEstimator, TransformerMixin):
                 labels=self.bin_labels_by_column_[cname],
             ).alias(cname)
             for cname in self.bin_edges_by_column_
-            if cname in X.columns
+            if cname in X.collect_schema().names()
         )
 
         return X

@@ -81,7 +81,7 @@ def test_transform(use_lazy_frame: bool):
 
     tf_data = discretizer.transform(data)
 
-    assert tf_data.dtypes == [pl.Categorical]
+    assert tf_data.collect_schema().dtypes() == [pl.Categorical]
 
     if use_lazy_frame:
         tf_data = tf_data.collect()
@@ -111,7 +111,7 @@ def test_transform_fewer_columns(use_lazy_frame: bool):
 
     tf_data = discretizer.transform(data.select(["feat"]))
 
-    assert tf_data.dtypes == [pl.Categorical]
+    assert tf_data.collect_schema().dtypes() == [pl.Categorical]
 
     if use_lazy_frame:
         tf_data = tf_data.collect()

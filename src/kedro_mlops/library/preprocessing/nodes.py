@@ -100,7 +100,9 @@ def fit_encoder(
     elif isinstance(pk_col, list):
         excluded = [*excluded, *pk_col]
 
-    column_names = [cname for cname in data.columns if cname not in excluded]
+    column_names = [
+        cname for cname in data.collect_schema().names() if cname not in excluded
+    ]
     encoder = TargetEncoder(**{**encoder_config, "column_names": column_names})
 
     encoder.fit(
