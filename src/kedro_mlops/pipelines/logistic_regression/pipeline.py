@@ -108,7 +108,7 @@ def create_pipeline(**kwargs) -> Pipeline:  # pragma: no cover
                     "selected_features",
                     "params:mod_params",
                 ],
-                outputs="fitted_model",
+                outputs="fitted_regression_model",
                 name="train_model_node",
             ),
             node(
@@ -116,7 +116,7 @@ def create_pipeline(**kwargs) -> Pipeline:  # pragma: no cover
                 inputs=[
                     "preprocessed_data",
                     "selected_features",
-                    "fitted_model",
+                    "fitted_regression_model",
                 ],
                 outputs="model_outputs",
                 name="get_predictions_node",

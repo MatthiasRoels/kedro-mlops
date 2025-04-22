@@ -4,7 +4,7 @@ test:
 	uv run python -m pytest src/tests/
 
 integration-test:
-	uv run kedro run --env=test
+	uv run kedro run --env=test --pipeline=logistic_regression
 
 install-pre-commit:
 	pre-commit install --install-hooks

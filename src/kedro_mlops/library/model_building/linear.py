@@ -3,8 +3,6 @@ from kedro.utils import load_obj
 from sklearn.base import BaseEstimator
 from sklearn.feature_selection import SequentialFeatureSelector
 
-from kedro_mlops.library.utils import materialize_data
-
 
 def sequential_feature_selection(
     train_data: pl.DataFrame,
@@ -44,12 +42,8 @@ def get_predictions(
     data: pl.DataFrame | pl.LazyFrame,
     selected_features: list,
     model: BaseEstimator,
-    use_predict_proba: bool = True,
 ) -> pl.DataFrame:
-    df = materialize_data(data)
-    if use_predict_proba:
-        y_pred = model.predict_proba(df[selected_features])[:, 1]
-    else:
-        y_pred = model.predict(df[selected_features])
+    df = data.lazy().collect()
+    y_pred = model.predict_proba(df[selected_features])[:, 1]
 
     return df.with_columns(predictions=pl.Series("y_pred", y_pred))

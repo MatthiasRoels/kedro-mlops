@@ -1,8 +1,6 @@
 import polars as pl
 from sklearn.base import BaseEstimator
 
-from kedro_mlops.library.utils import materialize_data
-
 from .kbins_discretizer import KBinsDiscretizer
 from .target_encoder import TargetEncoder
 from .utils import univariate_feature_selection_classification
@@ -156,4 +154,4 @@ def prepare_train_data(
         train_data, target_column, threshold
     )
 
-    return materialize_data(prepared_train_data)
+    return prepared_train_data.lazy().collect()

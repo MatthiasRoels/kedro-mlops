@@ -1,0 +1,14 @@
+server:
+  tracking_uri: null
+
+tracking:
+  # Enable MLflow tracking (set to false to disable)
+  enable_tracking: true
+  # Disables MLflow tracking for specific pipelines only
+  exclude_pipelines:
+    - mod_logreg_inference_pipeline
+    - mod_linreg_inference_pipeline
+    - mod_xgboost_inference_pipeline
+
+  experiment:
+    name: "${env:MLFLOW_EXPERIMENT,default}"
