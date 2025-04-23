@@ -4,6 +4,7 @@ generated using Kedro 0.19.2
 
 from kedro.pipeline import Pipeline, node, pipeline
 
+from kedro_mlops.library.evaluation.evaluation import evaluate_classifier
 from kedro_mlops.library.model_building.linear import (
     get_predictions,
     sequential_feature_selection,
@@ -21,7 +22,7 @@ from kedro_mlops.library.preprocessing.utils import (
 )
 
 
-def create_pipeline(**kwargs) -> Pipeline:  # pragma: no cover
+def create_pipeline(**kwargs) -> Pipeline:  # pragma: no cover # noqa: ARG001
     return pipeline(
         [
             node(
@@ -120,6 +121,16 @@ def create_pipeline(**kwargs) -> Pipeline:  # pragma: no cover
                 ],
                 outputs="model_outputs",
                 name="get_predictions_node",
+            ),
+            node(
+                func=evaluate_classifier,
+                inputs=[
+                    "model_outputs",
+                    "selected_features",
+                    "params:input_data_schema.target",
+                ],
+                outputs=None,
+                name="evaluate_model",
             ),
         ]
     )

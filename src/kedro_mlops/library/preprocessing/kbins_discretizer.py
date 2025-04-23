@@ -90,7 +90,7 @@ class KBinsDiscretizer(BaseEstimator, TransformerMixin):
         self.bin_edges_by_column_ = {}
         self.bin_labels_by_column_ = {}
 
-    def fit(self, X: pl.LazyFrame | pl.DataFrame, y=None):
+    def fit(self, X: pl.LazyFrame | pl.DataFrame, y=None):  # noqa: ARG002
         """Fits the estimator
 
         Parameters
@@ -103,7 +103,7 @@ class KBinsDiscretizer(BaseEstimator, TransformerMixin):
             cname for cname in self.column_names if cname in X.collect_schema().names()
         ]
 
-        n_bins_by_column = {cname: self.n_bins for cname in cname_list}
+        n_bins_by_column = dict.fromkeys(cname_list, self.n_bins)
         if self.auto_adapt_bins:
             # compute percentage of Null/Nan values and use that to adapt bin size
             # per column
@@ -181,7 +181,9 @@ class KBinsDiscretizer(BaseEstimator, TransformerMixin):
         return X
 
     def fit_transform(
-        self, X: pl.LazyFrame | pl.DataFrame, y=None
+        self,
+        X: pl.LazyFrame | pl.DataFrame,
+        y=None,  # noqa: ARG002
     ) -> pl.LazyFrame | pl.DataFrame:
         """Fits to data, then transform it
 
@@ -284,7 +286,7 @@ class KBinsDiscretizer(BaseEstimator, TransformerMixin):
         for cname, bin_edges_raw in zip(
             bin_edges_dict["cname"], bin_edges_dict["bin_edges"], strict=False
         ):
-            bin_edges = sorted(list(set(bin_edges_raw)))
+            bin_edges = sorted(set(bin_edges_raw))
 
             precision = self._compute_minimal_precision_of_bin_edges(bin_edges)
 

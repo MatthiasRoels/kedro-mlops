@@ -27,7 +27,7 @@ class VarianceThreshold(BaseEstimator, TransformerMixin):
 
         self.columns_to_drop_ = None
 
-    def fit(self, X: pl.DataFrame | pl.LazyFrame, y=None):
+    def fit(self, X: pl.DataFrame | pl.LazyFrame, y=None):  # noqa: ARG002
         """Learn empircal variances of the data
 
         To also include non-numeric data, we will first transform it into numeric data
@@ -84,7 +84,9 @@ class VarianceThreshold(BaseEstimator, TransformerMixin):
         )
 
     def fit_transform(
-        self, X: pl.DataFrame | pl.LazyFrame, y=None
+        self,
+        X: pl.DataFrame | pl.LazyFrame,
+        y=None,  # noqa: ARG002
     ) -> pl.DataFrame | pl.LazyFrame:
         """Fits to data, then transform it
 
