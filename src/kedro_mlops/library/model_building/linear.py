@@ -1,3 +1,4 @@
+import mlflow
 import polars as pl
 from kedro.utils import load_obj
 from sklearn.base import BaseEstimator
@@ -13,16 +14,25 @@ def sequential_feature_selection(
 
     model = load_obj(mod_params["model"]["class"])(**mod_params["model"]["kwargs"])
 
-    sfs = SequentialFeatureSelector(
-        model, **mod_params["sequential_feature_selection_kwargs"]
-    )
+    sfs = SequentialFeatureSelector(model, **mod_params["feature_selection"]["kwargs"])
 
     # cast target to pd.Series to avoid a warning/error on expecting a 1d array
     sfs.fit(
         train_data.select(cnames), train_data.select(target).to_series().to_pandas()
     )
 
-    return sfs.get_feature_names_out()
+    feature_names = sfs.get_feature_names_out()
+
+    if mlflow.active_run() is not None:  # pragma: no cover
+        mlflow.log_params(
+            {
+                "Model": mod_params["model"]["class"],
+                "selected_features": feature_names,
+                "feature selection method": mod_params["feature_selection"]["method"],
+            }
+        )
+
+    return feature_names
 
 
 def train_model(

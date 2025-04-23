@@ -4,7 +4,7 @@ generated using Kedro 0.19.2
 
 from kedro.pipeline import Pipeline, node, pipeline
 
-from kedro_mlops.library.evaluation.evaluation import evaluate_classifier
+from kedro_mlops.library.evaluation.evaluation import evaluate
 from kedro_mlops.library.model_building.linear import (
     get_predictions,
     sequential_feature_selection,
@@ -22,7 +22,7 @@ from kedro_mlops.library.preprocessing.utils import (
 )
 
 
-def create_pipeline(**kwargs) -> Pipeline:  # pragma: no cover # noqa: ARG001
+def create_pipeline(**kwargs) -> Pipeline:  # noqa: ARG001
     return pipeline(
         [
             node(
@@ -30,7 +30,7 @@ def create_pipeline(**kwargs) -> Pipeline:  # pragma: no cover # noqa: ARG001
                 inputs=[
                     "input_features",
                     "params:input_data_schema.target",
-                    "params:preprocessing.train_test_split.test_size",
+                    "params:mod_params.preprocessing.train_test_split.test_size",
                 ],
                 outputs="train_test_set",
                 name="stratified_train_test_split_node",
@@ -40,7 +40,7 @@ def create_pipeline(**kwargs) -> Pipeline:  # pragma: no cover # noqa: ARG001
                 inputs=[
                     "train_test_set",
                     "params:input_data_schema.target",
-                    "params:preprocessing.variance_threshold.threshold",
+                    "params:mod_params.preprocessing.variance_threshold.threshold",
                 ],
                 outputs="filtered_train_test_set",
                 name="apply_variance_threshold_node",
@@ -50,7 +50,7 @@ def create_pipeline(**kwargs) -> Pipeline:  # pragma: no cover # noqa: ARG001
                 inputs=[
                     "filtered_train_test_set",
                     "params:input_data_schema.numeric_columns",
-                    "params:preprocessing.kbins_discretizer",
+                    "params:mod_params.preprocessing.kbins_discretizer",
                 ],
                 outputs="fitted_discretizer",
                 name="fit_kbins_discretizer_node",
@@ -66,7 +66,7 @@ def create_pipeline(**kwargs) -> Pipeline:  # pragma: no cover # noqa: ARG001
                 inputs=[
                     "discretized_data",
                     "params:input_data_schema.target",
-                    "params:preprocessing.target_encoder",
+                    "params:mod_params.preprocessing.target_encoder",
                     "params:input_data_schema.pk_col",
                 ],
                 outputs="fitted_encoder",
@@ -86,7 +86,7 @@ def create_pipeline(**kwargs) -> Pipeline:  # pragma: no cover # noqa: ARG001
                 inputs=[
                     "preprocessed_data",
                     "params:input_data_schema.target",
-                    "params:preprocessing.univariate_feature_selection.threshold",
+                    "params:mod_params.preprocessing.univariate_feature_selection.threshold",
                 ],
                 outputs="training_data",
                 name="univariate_feature_selection_node",
@@ -123,8 +123,9 @@ def create_pipeline(**kwargs) -> Pipeline:  # pragma: no cover # noqa: ARG001
                 name="get_predictions_node",
             ),
             node(
-                func=evaluate_classifier,
+                func=evaluate,
                 inputs=[
+                    "params:mod_params.model.model_type",
                     "model_outputs",
                     "selected_features",
                     "params:input_data_schema.target",

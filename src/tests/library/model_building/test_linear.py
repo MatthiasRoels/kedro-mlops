@@ -28,11 +28,13 @@ def mod_params() -> dict:
                 "random_state": 42,
             },
         },
-        "sequential_feature_selection_kwargs": {
-            "n_features_to_select": 2,
-            "direction": "forward",
-            "scoring": "roc_auc",
-            "cv": 5,
+        "feature_selection": {
+            "kwargs": {
+                "n_features_to_select": 2,
+                "direction": "forward",
+                "scoring": "roc_auc",
+                "cv": 5,
+            }
         },
     }
 

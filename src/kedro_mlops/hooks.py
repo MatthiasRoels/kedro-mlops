@@ -21,6 +21,7 @@ class MlflowHook:
         self.run_id: str | None = None
         self._mlflow_client: mlflow.MlflowClient | None = None
         self._mlflow_disabled: bool = False
+        self._params = None
 
     @hook_impl
     def after_context_created(

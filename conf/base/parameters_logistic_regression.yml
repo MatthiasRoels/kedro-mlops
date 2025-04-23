@@ -3,35 +3,38 @@
 #
 # Documentation for this file format can be found in "Parameters"
 # Link: https://docs.kedro.org/en/0.19.2/configuration/parameters.html
-preprocessing:
-  train_test_split:
-    test_size: 0.3
-  variance_threshold:
-    threshold: 0
-  kbins_discretizer: {}
-    #n_bins: 10
-    #strategy: "quantile"
-    #left_closed: false
-    #auto_adapt_bins: true
-    #starting_precision: 0
-    #label_format: "{} - {}"
-  target_encoder: {}
-    #weight: 0.0
-    #imputation_strategy: "mean"
-  univariate_feature_selection:
-    # default of 0.5 for classification (ROC AUC) and 5 for regression (RMSE)
-    threshold: 0.5
 mod_params:
+  preprocessing:
+    train_test_split:
+      test_size: 0.3
+    variance_threshold:
+      threshold: 0
+    kbins_discretizer: {}
+      #n_bins: 10
+      #strategy: "quantile"
+      #left_closed: false
+      #auto_adapt_bins: true
+      #starting_precision: 0
+      #label_format: "{} - {}"
+    target_encoder: {}
+      #weight: 0.0
+      #imputation_strategy: "mean"
+    univariate_feature_selection:
+      # default of 0.5 for classification (ROC AUC) and 5 for regression (RMSE)
+      threshold: 0.5
   model:
+    model_type: "classifier"
     class: sklearn.linear_model.LogisticRegression
     kwargs:
       fit_intercept: true
       C: 1e9
       solver: "liblinear"
       random_state: 42
-  sequential_feature_selection_kwargs:
-    tol: 10e-3
-    direction: "forward"
-    # change to "rmse" for regression
-    scoring: "roc_auc"
-    cv: 5
+  feature_selection:
+    method: "forward_feature_selection"
+    kwargs:
+      tol: 10e-3
+      direction: "forward"
+      # change to "rmse" for regression
+      scoring: "roc_auc"
+      cv: 5
