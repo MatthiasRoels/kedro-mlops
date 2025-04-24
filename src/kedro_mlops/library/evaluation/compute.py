@@ -18,6 +18,12 @@ def compute_lift(y_true: np.ndarray, y_pred: np.ndarray, lift_at: float) -> floa
     float
         Lift of the model.
     """
+    if lift_at > 1 or lift_at < 0:
+        raise ValueError("lift_at should be between 0 and 1")
+
+    if len(y_true) == 0 or len(y_pred) == 0:
+        raise ValueError("y_true and y_pred should not be empty")
+
     # Make sure it is numpy array
     y_true_ = np.array(y_true)
     y_pred_ = np.array(y_pred)

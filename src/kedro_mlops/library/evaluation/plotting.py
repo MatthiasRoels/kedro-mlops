@@ -94,7 +94,7 @@ def plot_feature_incidence_graphs(  # noqa: PLR0915
     model_type: str,
     column_order: list | None = None,
     dim: tuple | None = None,
-):
+):  # pragma: no cover
     """Plots a Feature Insights Graph (FIG), a graph in which the mean
     target value is plotted for a number of bins constructed from a predictor
     variable. When the target is a binary classification target,
