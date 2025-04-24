@@ -3,8 +3,7 @@ import pytest
 from polars.testing import assert_frame_equal
 
 from kedro_mlops.library.preprocessing.utils import (
-    stratified_train_test_split_binary_target,
-    train_test_split_continuous_target,
+    train_test_split,
     univariate_feature_selection_classification,
     univariate_feature_selection_regression,
 )
@@ -45,7 +44,9 @@ def test_stratified_train_test_split_binary_target(data, use_lazy: bool):
 
     expected_values = ["test"] * 24 + ["train"] * 56 + ["test"] * 6 + ["train"] * 14
 
-    actual = stratified_train_test_split_binary_target(data, "target", 0.3)
+    actual = train_test_split(
+        model_type="classifier", data=data, target_column="target", test_size=0.3
+    )
     expected = data.with_columns(pl.Series(name="split", values=expected_values))
 
     if use_lazy:
@@ -66,8 +67,13 @@ def test_stratified_train_test_split_binary_target_sampled_data(
     if use_lazy:
         sampled_data = sampled_data.lazy()
 
-    splitted_data = stratified_train_test_split_binary_target(
-        sampled_data, "target", test_size=0.3, shuffle_data=shuffle, random_seed=42
+    splitted_data = train_test_split(
+        model_type="classifier",
+        data=sampled_data,
+        target_column="target",
+        test_size=0.3,
+        shuffle_data=shuffle,
+        random_seed=42,
     )
 
     actual_raw = splitted_data.group_by(["split", "target"]).len()
@@ -94,8 +100,12 @@ def test_train_test_split_continuous_target(
     if use_lazy:
         sampled_data = sampled_data.lazy()
 
-    splitted_data = train_test_split_continuous_target(
-        sampled_data, test_size=0.3, shuffle_data=shuffle, random_seed=42
+    splitted_data = train_test_split(
+        model_type="regressor",
+        data=sampled_data,
+        test_size=0.3,
+        shuffle_data=shuffle,
+        random_seed=42,
     )
 
     actual_raw = splitted_data.group_by("split").len()

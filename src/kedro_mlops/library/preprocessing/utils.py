@@ -6,10 +6,65 @@ import polars_ds as pds
 logger = logging.getLogger(__name__)
 
 
-def stratified_train_test_split_binary_target(
+def train_test_split(
+    model_type: str,
     data: pl.DataFrame | pl.LazyFrame,
-    target_column: str,
     test_size: float,
+    target_column: str | None = None,
+    shuffle_data: bool = False,
+    random_seed: int | None = None,
+) -> pl.DataFrame | pl.LazyFrame:
+    """Adds a `split` column with train/test values to the dataset.
+    When the target is binary, a stratified approach is used which means
+    the incidence in train/test are the same as the original dataset.
+
+    Train set = data on which the model is trained and on which the encoding is based.
+    Test set = data that generates the final performance metrics.
+
+    Parameters
+    ----------
+    model_type: str
+        A string describing the model type (e.g., ``"regressor"`` or ``"classifier"``).
+    data : pl.DataFrame | pl.LazyFrame
+        Input dataset to split into train-test sets.
+    test_size : float, optional
+        Percentage of data to put in test set.
+    target_column: str
+        Column name of the target.
+    shuffle_data : float, optional
+        Whether or not to shuffle the data before splitting
+    random_seed : float, optional
+        Seed for the random number generator. If set to None (default),
+        a random seed is generated for each sample operation.
+
+    Returns
+    -------
+    pl.DataFrame | pl.LazyFrame
+        DataFrame with additional split column.
+    """
+    if model_type == "classifier":
+        return _stratified_train_test_split_binary_target(
+            data=data,
+            test_size=test_size,
+            target_column=target_column,
+            shuffle_data=shuffle_data,
+            random_seed=random_seed,
+        )
+    elif model_type == "regressor":
+        return _train_test_split_continuous_target(
+            data=data,
+            test_size=test_size,
+            shuffle_data=shuffle_data,
+            random_seed=random_seed,
+        )
+    else:  # pragma: no cover
+        raise ValueError(f"Unsupported model_type {model_type}")
+
+
+def _stratified_train_test_split_binary_target(
+    data: pl.DataFrame | pl.LazyFrame,
+    test_size: float,
+    target_column: str,
     shuffle_data: bool = False,
     random_seed: int | None = None,
 ) -> pl.DataFrame | pl.LazyFrame:
@@ -86,7 +141,7 @@ def stratified_train_test_split_binary_target(
     )
 
 
-def train_test_split_continuous_target(
+def _train_test_split_continuous_target(
     data: pl.DataFrame | pl.LazyFrame,
     test_size: float,
     shuffle_data: bool = False,

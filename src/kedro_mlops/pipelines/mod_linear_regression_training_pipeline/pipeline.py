@@ -18,7 +18,7 @@ from kedro_mlops.library.preprocessing.nodes import (
     transform_data,
 )
 from kedro_mlops.library.preprocessing.utils import (
-    stratified_train_test_split_binary_target,
+    train_test_split,
 )
 
 
@@ -26,14 +26,15 @@ def create_pipeline(**kwargs) -> Pipeline:  # noqa: ARG001
     return pipeline(
         [
             node(
-                func=stratified_train_test_split_binary_target,
+                func=train_test_split,
                 inputs=[
+                    "params:mod_params.model.model_type",
                     "input_features",
-                    "params:input_data_schema.target",
                     "params:mod_params.preprocessing.train_test_split.test_size",
+                    "params:input_data_schema.target",
                 ],
                 outputs="train_test_set",
-                name="stratified_train_test_split_node",
+                name="train_test_split_node",
             ),
             node(
                 func=apply_variance_threshold,
