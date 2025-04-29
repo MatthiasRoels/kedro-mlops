@@ -33,6 +33,7 @@ mod_params:
   feature_selection:
     method: "forward_feature_selection"
     kwargs:
+      n_features_to_select: "auto"
       tol: 10e-3
       direction: "forward"
       # change to "rmse" for regression

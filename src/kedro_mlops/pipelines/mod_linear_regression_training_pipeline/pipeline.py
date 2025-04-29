@@ -88,6 +88,7 @@ def create_pipeline(**kwargs) -> Pipeline:  # noqa: ARG001
                     "preprocessed_data",
                     "params:input_data_schema.target",
                     "params:mod_params.preprocessing.univariate_feature_selection.threshold",
+                    "params:mod_params.model.model_type",
                 ],
                 outputs="training_data",
                 name="univariate_feature_selection_node",

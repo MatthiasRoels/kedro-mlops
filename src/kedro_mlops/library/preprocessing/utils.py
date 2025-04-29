@@ -283,7 +283,7 @@ def univariate_feature_selection_regression(
 
     rmse = pl.concat(
         [
-            data.select(
+            data.lazy().select(
                 cname=pl.lit(cname),
                 rmse=((pl.col(target_column) - pl.col(cname)) ** 2 / num_rows)
                 .sum()
@@ -292,10 +292,7 @@ def univariate_feature_selection_regression(
             for cname in data.collect_schema().names()
             if cname != target_column
         ]
-    )
-
-    if isinstance(rmse, pl.LazyFrame):
-        rmse = rmse.collect()
+    ).collect()
 
     logger.info("RMSE preselection:")
     logger.info(rmse)

@@ -3,7 +3,10 @@ from sklearn.base import BaseEstimator
 
 from .kbins_discretizer import KBinsDiscretizer
 from .target_encoder import TargetEncoder
-from .utils import univariate_feature_selection_classification
+from .utils import (
+    univariate_feature_selection_classification,
+    univariate_feature_selection_regression,
+)
 from .variance_threshold import VarianceThreshold
 
 
@@ -123,6 +126,7 @@ def prepare_train_data(
     data: pl.DataFrame | pl.LazyFrame,
     target_column: str,
     threshold: float,
+    model_type: str,
 ) -> pl.DataFrame:
     """Wrapper around univariate_feature_selection_classification utils function
 
@@ -136,7 +140,8 @@ def prepare_train_data(
         Name of the target column.
     threshold : float, optional
         Threshold on min. AUC to select the features
-
+    model_type: str
+        A string describing the model type (e.g., ``"regressor"`` or ``"classifier"``).
     Returns
     -------
     pl.DataFrame
@@ -150,8 +155,15 @@ def prepare_train_data(
         ]
     )
 
-    prepared_train_data = univariate_feature_selection_classification(
-        train_data, target_column, threshold
-    )
+    if model_type == "classifier":
+        prepared_train_data = univariate_feature_selection_classification(
+            train_data, target_column, threshold
+        )
+    elif model_type == "regressor":
+        prepared_train_data = univariate_feature_selection_regression(
+            train_data, target_column, threshold, model_type
+        )
+    else:  # pragma: no cover
+        raise ValueError(f"Unsupported model_type {model_type}")
 
     return prepared_train_data.lazy().collect()

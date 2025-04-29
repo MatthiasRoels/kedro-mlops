@@ -42,6 +42,9 @@ CONFIG_LOADER_ARGS = {
         "mlflow": ["mlflow*", "mlflow*/**", "**/mlflow*"],
         # Note: for globals, we use the default e.g. "globals": ["globals.yml"],
     },
+    "merge_strategy": {
+        "parameters": "soft",
+    },
     "custom_resolvers": {
         "env": oc.env,
         "polars": lambda x: getattr(pl, x),
