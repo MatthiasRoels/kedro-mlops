@@ -6,7 +6,7 @@ from kedro.framework.context import KedroContext
 from kedro.framework.hooks import hook_impl
 from mlflow.entities import RunStatus
 
-from kedro_mlops.library.schemas import MLflowConfig
+from kedro_mlops.library.mlflow.schemas import MLflowConfig
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ class MlflowHook:
         mlflow_config = context.config_loader["mlflow"]
 
         if mlflow_config:
-            self.mlflow_config = MLflowConfig.parse_obj(mlflow_config)
+            self.mlflow_config = MLflowConfig.model_validate(mlflow_config)
 
             tracking_uri = self.mlflow_config.server.tracking_uri
 

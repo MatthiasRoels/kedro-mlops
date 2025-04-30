@@ -6,8 +6,7 @@ tracking:
   enable_tracking: true
   # Disables MLflow tracking for specific pipelines only
   exclude_pipelines:
-    - mod_logreg_inference_pipeline
-    - mod_linreg_inference_pipeline
+    - mod_linear_regression_inference_pipeline
     - mod_xgboost_inference_pipeline
 
   experiment:

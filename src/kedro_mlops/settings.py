@@ -7,7 +7,7 @@ import polars as pl
 from kedro.config import OmegaConfigLoader
 from omegaconf.resolvers import oc
 
-from kedro_mlops.hooks import MlflowHook
+from kedro_mlops.library.mlflow.hooks import MlflowHook
 
 # Instantiate and list your project hooks here
 HOOKS = (MlflowHook(),)
