@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from kedro_mlops.library.evaluation.compute import compute_lift
+from kedro_mlops.library.evaluation import compute_lift
 
 
 def test_compute_lift_perfect_prediction():

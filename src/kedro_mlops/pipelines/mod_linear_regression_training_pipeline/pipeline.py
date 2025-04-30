@@ -4,7 +4,7 @@ generated using Kedro 0.19.2
 
 from kedro.pipeline import Pipeline, node, pipeline
 
-from kedro_mlops.library.evaluation.evaluation import evaluate
+from kedro_mlops.library.evaluation.nodes import evaluate
 from kedro_mlops.library.model_building.linear import (
     get_predictions,
     sequential_feature_selection,
@@ -132,7 +132,7 @@ def create_pipeline(**kwargs) -> Pipeline:  # noqa: ARG001
                     "selected_features",
                     "params:input_data_schema.target",
                 ],
-                outputs=None,
+                outputs="mlflow_plots",
                 name="evaluate_model",
             ),
         ]

@@ -1,4 +1,45 @@
 import numpy as np
+from sklearn.metrics import (
+    accuracy_score,
+    average_precision_score,
+    f1_score,
+    matthews_corrcoef,
+    mean_absolute_error,
+    mean_squared_error,
+    precision_score,
+    r2_score,
+    recall_score,
+    roc_auc_score,
+)
+
+
+def compute_classfier_metrics(
+    y_true, y_pred, y_pred_b
+) -> dict[str, float]:  # pragma: no cover
+    return {
+        "accuracy": accuracy_score(y_true, y_pred_b),
+        "AUC": roc_auc_score(y_true, y_pred),
+        "Average Precision score": average_precision_score(y_true, y_pred),
+        "precision": precision_score(y_true, y_pred_b),
+        "recall": recall_score(y_true, y_pred_b),
+        "F1": f1_score(y_true, y_pred_b, average=None)[1],
+        "matthews_corrcoef": matthews_corrcoef(y_true, y_pred_b),
+        "lift at 5 percent": np.round(
+            compute_lift(y_true=y_true, y_pred=y_pred, lift_at=0.05), 2
+        ),
+        "lift at 10 percent": np.round(
+            compute_lift(y_true=y_true, y_pred=y_pred, lift_at=0.1), 2
+        ),
+    }
+
+
+def compute_regressor_metrics(y_true, y_pred) -> dict[str, float]:  # pragma: no cover
+    return {
+        "R2": r2_score(y_true, y_pred),
+        "MAE": mean_absolute_error(y_true, y_pred),
+        "MSE": mean_squared_error(y_true, y_pred),
+        "RMSE": np.sqrt(mean_squared_error(y_true, y_pred)),
+    }
 
 
 def compute_lift(y_true: np.ndarray, y_pred: np.ndarray, lift_at: float) -> float:

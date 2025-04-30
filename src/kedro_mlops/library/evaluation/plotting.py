@@ -2,10 +2,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from matplotlib.figure import Figure
 from matplotlib.ticker import FuncFormatter
 
 
-def plot_roc_curve(fpr, tpr, auc: float, path: str, dim: tuple | None = None):
+def plot_roc_curve(fpr, tpr, auc: float, dim: tuple | None = None) -> Figure:
     """Plot ROC curve of the model"""
     with plt.style.context("seaborn-v0_8-whitegrid"):
         fig, ax = plt.subplots(figsize=dim)
@@ -28,12 +29,13 @@ def plot_roc_curve(fpr, tpr, auc: float, path: str, dim: tuple | None = None):
 
         ax.set_ylim([0, 1])
 
-        plt.savefig(path, format="png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    return fig
 
 
 def plot_pr_curve(
-    precision, recall, average: float, path: str, dim: tuple | None = None
-):
+    precision, recall, average: float, dim: tuple | None = None
+) -> Figure:
     """Plot Precision Recall curve of the model"""
     with plt.style.context("seaborn-v0_8-whitegrid"):
         fig, ax = plt.subplots(figsize=dim)
@@ -48,19 +50,20 @@ def plot_pr_curve(
 
         ax.set_ylim([0, 1])
 
-        plt.savefig(path, format="png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    return fig
 
 
 def plot_confusion_matrix(
-    confusion_matrix, path: str, dim: tuple | None = None, labels: list | None = None
-):
+    confusion_matrix, dim: tuple | None = None, labels: list | None = None
+) -> Figure:
     """Plot the confusion matrix"""
     if dim is None:
         dim = (12, 8)
     if labels is None:
         labels = ["0", "1"]
 
-    _, ax = plt.subplots(figsize=dim)
+    fig, ax = plt.subplots(figsize=dim)
     ax = sns.heatmap(
         confusion_matrix,
         annot=confusion_matrix.astype(str),
@@ -72,20 +75,21 @@ def plot_confusion_matrix(
     ax.set_title("Confusion matrix", fontsize=20)
     plt.ylabel("True labels", fontsize=15)
     plt.xlabel("Predicted labels", fontsize=15)
+    plt.close(fig)
+    return fig
 
-    plt.savefig(path, format="png", dpi=300, bbox_inches="tight")
 
-
-def plot_correlation_matrix(df_corr: pd.DataFrame, path: str, dim: tuple | None = None):
+def plot_correlation_matrix(df_corr: pd.DataFrame, dim: tuple | None = None):
     """Plot correlation matrix of the predictors"""
     if dim is None:
         dim = (12, 8)
 
-    _, ax = plt.subplots(figsize=dim)
+    fig, ax = plt.subplots(figsize=dim)
     ax = sns.heatmap(df_corr, cmap="Blues")
     ax.set_title("Correlation matrix", fontsize=20)
 
-    plt.savefig(path, format="png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    return fig
 
 
 def plot_feature_incidence_graphs(  # noqa: PLR0915
@@ -274,10 +278,8 @@ def plot_feature_incidence_graphs(  # noqa: PLR0915
         ax.set_zorder(1)
         ax.patch.set_visible(False)
 
-        del df_plot
-
         plt.tight_layout()
         plt.margins(0.01)
 
-        # Show
-        plt.show()
+    plt.close(fig)
+    return fig

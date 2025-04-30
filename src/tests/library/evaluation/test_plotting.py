@@ -1,8 +1,6 @@
-import os
-
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import pytest
 
 from src.kedro_mlops.library.evaluation.plotting import (
     plot_confusion_matrix,
@@ -12,42 +10,36 @@ from src.kedro_mlops.library.evaluation.plotting import (
 )
 
 
-@pytest.fixture
-def tmp_file_path(tmp_path):
-    """Fixture to create a temporary file path."""
-    return os.path.join(tmp_path, "test_plot.png")
-
-
-def test_plot_roc_curve(tmp_file_path):
+def test_plot_roc_curve():
     fpr = [0.0, 0.1, 0.2, 1.0]
     tpr = [0.0, 0.4, 0.8, 1.0]
     auc = 0.85
 
-    plot_roc_curve(fpr, tpr, auc, tmp_file_path)
+    fig = plot_roc_curve(fpr, tpr, auc)
 
-    assert os.path.exists(tmp_file_path)
+    assert isinstance(fig, plt.Figure)
 
 
-def test_plot_pr_curve(tmp_file_path):
+def test_plot_pr_curve():
     precision = [1.0, 0.8, 0.6, 0.0]
     recall = [0.0, 0.4, 0.8, 1.0]
     average = 0.75
 
-    plot_pr_curve(precision, recall, average, tmp_file_path)
+    fig = plot_pr_curve(precision, recall, average)
 
-    assert os.path.exists(tmp_file_path)
+    assert isinstance(fig, plt.Figure)
 
 
-def test_plot_confusion_matrix(tmp_file_path):
+def test_plot_confusion_matrix():
     confusion_matrix = np.array([[50, 10], [5, 35]])
     labels = ["Class 0", "Class 1"]
 
-    plot_confusion_matrix(confusion_matrix, tmp_file_path, labels=labels)
+    fig = plot_confusion_matrix(confusion_matrix, labels=labels)
 
-    assert os.path.exists(tmp_file_path)
+    assert isinstance(fig, plt.Figure)
 
 
-def test_plot_correlation_matrix(tmp_file_path):
+def test_plot_correlation_matrix():
     df_corr = pd.DataFrame(
         {
             "Feature1": [1.0, 0.8, 0.5],
@@ -56,6 +48,6 @@ def test_plot_correlation_matrix(tmp_file_path):
         }
     )
 
-    plot_correlation_matrix(df_corr, tmp_file_path)
+    fig = plot_correlation_matrix(df_corr)
 
-    assert os.path.exists(tmp_file_path)
+    assert isinstance(fig, plt.Figure)
