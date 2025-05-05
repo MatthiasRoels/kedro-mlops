@@ -23,7 +23,7 @@ from kedro_mlops.library.evaluation.plotting import (
 
 def evaluate(
     model_type: str,
-    model_outputs: pl.DataFrame,
+    model_outputs: pl.LazyFrame | pl.DataFrame,
     selected_features: list[str],
     target: str,
     predictions: str = "predictions",
@@ -48,15 +48,25 @@ def evaluate(
 
 
 def _evaluate_classifier(
-    model_outputs: pl.DataFrame,
+    model_outputs: pl.LazyFrame | pl.DataFrame,
     selected_features: list[str],
     target: str,
     predictions: str,
     threshold: float = 0.5,
 ):
-    y_true = model_outputs.filter(pl.col("split") == "test").select(target).to_numpy()
+    y_true = (
+        model_outputs.lazy()
+        .filter(pl.col("split") == "test")
+        .select(target)
+        .collect()
+        .to_numpy()
+    )
     y_pred = (
-        model_outputs.filter(pl.col("split") == "test").select(predictions).to_numpy()
+        model_outputs.lazy()
+        .filter(pl.col("split") == "test")
+        .select(predictions)
+        .collect()
+        .to_numpy()
     )
     y_pred_b = np.array([0 if pred <= threshold else 1 for pred in y_pred])
 
@@ -81,7 +91,11 @@ def _evaluate_classifier(
             confusion_matrix=confusion_matrix(y_true, y_pred_b)
         ),
         "correlation-matrix": plot_correlation_matrix(
-            df_corr=model_outputs.select(selected_features).to_pandas().corr()
+            df_corr=model_outputs.lazy()
+            .select(selected_features)
+            .collect()
+            .to_pandas()
+            .corr()
         ),
     }
 
@@ -95,14 +109,24 @@ def _evaluate_classifier(
 
 
 def _evaluate_regressor(
-    model_outputs: pl.DataFrame,
+    model_outputs: pl.LazyFrame | pl.DataFrame,
     selected_features: list[str],
     target: str,
     predictions: str = "predictions",
 ):
-    y_true = model_outputs.filter(pl.col("split") == "test").select(target).to_pandas()
+    y_true = (
+        model_outputs.lazy()
+        .filter(pl.col("split") == "test")
+        .select(target)
+        .collect()
+        .to_numpy()
+    )
     y_pred = (
-        model_outputs.filter(pl.col("split") == "test").select(predictions).to_pandas()
+        model_outputs.lazy()
+        .filter(pl.col("split") == "test")
+        .select(predictions)
+        .collect()
+        .to_numpy()
     )
 
     metrics = compute_regressor_metrics(
@@ -116,7 +140,11 @@ def _evaluate_regressor(
         ),
         "qq-plot": plot_qq(y_true=y_true, y_pred=y_pred),
         "correlation-matrix": plot_correlation_matrix(
-            df_corr=model_outputs.select(selected_features).to_pandas().corr()
+            df_corr=model_outputs.lazy()
+            .select(selected_features)
+            .collect()
+            .to_pandas()
+            .corr()
         ),
     }
 

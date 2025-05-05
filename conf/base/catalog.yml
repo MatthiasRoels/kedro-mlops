@@ -12,3 +12,8 @@ fitted_regression_model: # simple example without compression
   type: pickle.PickleDataset
   filepath: data/artifacts/model/fitted_model.pkl
   backend: cloudpickle
+
+model_outputs:
+  type: polars.LazyPolarsDataset
+  filepath: data/model_outputs.parquet
+  file_format: parquet
