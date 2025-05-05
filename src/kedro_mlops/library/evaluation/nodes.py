@@ -15,6 +15,8 @@ from kedro_mlops.library.evaluation.plotting import (
     plot_confusion_matrix,
     plot_correlation_matrix,
     plot_pr_curve,
+    plot_predictions_vs_actuals,
+    plot_qq,
     plot_roc_curve,
 )
 
@@ -94,7 +96,7 @@ def _evaluate_classifier(
 
 def _evaluate_regressor(
     model_outputs: pl.DataFrame,
-    selected_features: list[str],  # noqa: ARG001
+    selected_features: list[str],
     target: str,
     predictions: str = "predictions",
 ):
@@ -108,7 +110,15 @@ def _evaluate_regressor(
         y_pred=y_pred,
     )
 
-    artifacts = {}
+    artifacts = {
+        "predictions-vs-actuals": plot_predictions_vs_actuals(
+            y_true=y_true, y_pred=y_pred
+        ),
+        "qq-plot": plot_qq(y_true=y_true, y_pred=y_pred),
+        "correlation-matrix": plot_correlation_matrix(
+            df_corr=model_outputs.select(selected_features).to_pandas().corr()
+        ),
+    }
 
     # log metrics
     if mlflow.active_run() is not None:

@@ -4,6 +4,7 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.figure import Figure
 from matplotlib.ticker import FuncFormatter
+from scipy import stats
 
 
 def plot_roc_curve(fpr, tpr, auc: float, dim: tuple | None = None) -> Figure:
@@ -60,7 +61,8 @@ def plot_confusion_matrix(
     """Plot the confusion matrix"""
     if dim is None:
         dim = (12, 8)
-    if labels is None:
+    if labels is None:  # pragma: no cover
+        # Default labels for binary classification
         labels = ["0", "1"]
 
     fig, ax = plt.subplots(figsize=dim)
@@ -87,6 +89,42 @@ def plot_correlation_matrix(df_corr: pd.DataFrame, dim: tuple | None = None):
     fig, ax = plt.subplots(figsize=dim)
     ax = sns.heatmap(df_corr, cmap="Blues")
     ax.set_title("Correlation matrix", fontsize=20)
+
+    plt.close(fig)
+    return fig
+
+
+def plot_predictions_vs_actuals(
+    y_true: np.array, y_pred: np.array, dim: tuple | None = None
+) -> Figure:
+    """Plot the predictions vs actuals"""
+    with plt.style.context("seaborn-v0_8-whitegrid"):
+        fig, ax = plt.subplots(figsize=dim)
+
+        x = np.arange(1, len(y_true) + 1)
+
+        ax.plot(x, y_true, ls="--", label="actuals", color="red", linewidth=3)
+        ax.plot(x, y_pred, label="predictions", color="royalblue", linewidth=3)
+
+        ax.set_xlabel("Index", fontsize=15)
+        ax.set_ylabel("Value", fontsize=15)
+        ax.legend(loc="best")
+        ax.set_title("Predictions vs. Actuals", fontsize=20)
+
+    plt.close(fig)
+    return fig
+
+
+def plot_qq(y_residual: np.array, dim: tuple | None = None) -> Figure:
+    """Q-Q plot of the residuals of the model."""
+    if dim is None:
+        dim = (12, 8)
+
+    with plt.style.context("seaborn-v0_8-whitegrid"):
+        fig, ax = plt.subplots(figsize=dim)
+
+        stats.probplot(y_residual, plot=ax)
+        ax.set_title("Q-Q plot", fontsize=20)
 
     plt.close(fig)
     return fig

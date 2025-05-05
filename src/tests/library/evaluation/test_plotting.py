@@ -6,6 +6,8 @@ from src.kedro_mlops.library.evaluation.plotting import (
     plot_confusion_matrix,
     plot_correlation_matrix,
     plot_pr_curve,
+    plot_predictions_vs_actuals,
+    plot_qq,
     plot_roc_curve,
 )
 
@@ -49,5 +51,23 @@ def test_plot_correlation_matrix():
     )
 
     fig = plot_correlation_matrix(df_corr)
+
+    assert isinstance(fig, plt.Figure)
+
+
+def test_plot_qq():
+    rng = np.random.default_rng()
+    y_residual = rng.standard_normal(100)
+
+    fig = plot_qq(y_residual)
+
+    assert isinstance(fig, plt.Figure)
+
+
+def test_plot_predictions_vs_actuals():
+    y_true = np.array([3.0, 2.5, 4.0, 5.0, 3.5])
+    y_pred = np.array([2.8, 2.7, 4.1, 4.8, 3.6])
+
+    fig = plot_predictions_vs_actuals(y_true, y_pred)
 
     assert isinstance(fig, plt.Figure)
