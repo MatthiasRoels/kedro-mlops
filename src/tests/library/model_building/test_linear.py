@@ -75,7 +75,7 @@ def test_get_predictions(data, use_lazy_api: bool, mocker):
     )
 
     logit = LogisticRegression()
-    selected_features = ["worst perimeter"]
-    actual = get_predictions(data, selected_features, logit)
+    logit.feature_names_in_ = ["worst perimeter"]
+    actual = get_predictions(data, logit)
 
     assert "predictions" in actual.columns

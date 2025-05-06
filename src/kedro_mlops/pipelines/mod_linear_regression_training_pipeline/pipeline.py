@@ -43,13 +43,13 @@ def create_pipeline(**kwargs) -> Pipeline:  # noqa: ARG001
                     "params:input_data_schema.target",
                     "params:mod_params.preprocessing.variance_threshold.threshold",
                 ],
-                outputs="filtered_train_test_set",
+                outputs="filtered_input_features",
                 name="apply_variance_threshold_node",
             ),
             node(
                 func=fit_discretizer,
                 inputs=[
-                    "filtered_train_test_set",
+                    "filtered_input_features",
                     "params:input_data_schema.numeric_columns",
                     "params:mod_params.preprocessing.kbins_discretizer",
                 ],
@@ -58,9 +58,10 @@ def create_pipeline(**kwargs) -> Pipeline:  # noqa: ARG001
             ),
             node(
                 func=transform_data,
-                inputs=["filtered_train_test_set", "fitted_discretizer"],
+                inputs=["filtered_input_features", "fitted_discretizer"],
                 outputs="discretized_data",
                 name="discretize_data_node",
+                tags=["inference"],
             ),
             node(
                 func=fit_encoder,
@@ -81,6 +82,7 @@ def create_pipeline(**kwargs) -> Pipeline:  # noqa: ARG001
                 ],
                 outputs="preprocessed_data",
                 name="target_encode_data_node",
+                tags=["inference"],
             ),
             node(
                 func=prepare_train_data,
@@ -118,11 +120,11 @@ def create_pipeline(**kwargs) -> Pipeline:  # noqa: ARG001
                 func=get_predictions,
                 inputs=[
                     "preprocessed_data",
-                    "selected_features",
                     "fitted_regression_model",
                 ],
                 outputs="model_outputs",
                 name="get_predictions_node",
+                tags=["inference"],
             ),
             node(
                 func=evaluate,
@@ -135,5 +137,6 @@ def create_pipeline(**kwargs) -> Pipeline:  # noqa: ARG001
                 outputs="mlflow_plots",
                 name="evaluate_model",
             ),
-        ]
+        ],
+        tags=["training", "linear_regression"],
     )

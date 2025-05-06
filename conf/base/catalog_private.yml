@@ -1,0 +1,23 @@
+fitted_discretizer: # simple example without compression
+  type: pickle.PickleDataset
+  filepath: data/artifacts/model/fitted_discretizer.pkl
+  backend: cloudpickle
+  metadata:
+    mlflow:
+      is_model_artifact: true
+
+fitted_encoder: # simple example without compression
+  type: pickle.PickleDataset
+  filepath: data/artifacts/model/fitted_encoder.pkl
+  backend: cloudpickle
+  metadata:
+    mlflow:
+      is_model_artifact: true
+
+fitted_regression_model: # simple example without compression
+  type: pickle.PickleDataset
+  filepath: data/artifacts/model/fitted_model.pkl
+  backend: cloudpickle
+  metadata:
+    mlflow:
+      is_model_artifact: true

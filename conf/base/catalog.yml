@@ -1,18 +1,3 @@
-fitted_discretizer: # simple example without compression
-  type: pickle.PickleDataset
-  filepath: data/artifacts/model/fitted_discretizer.pkl
-  backend: cloudpickle
-
-fitted_encoder: # simple example without compression
-  type: pickle.PickleDataset
-  filepath: data/artifacts/model/fitted_encoder.pkl
-  backend: cloudpickle
-
-fitted_regression_model: # simple example without compression
-  type: pickle.PickleDataset
-  filepath: data/artifacts/model/fitted_model.pkl
-  backend: cloudpickle
-
 model_outputs:
   type: polars.LazyPolarsDataset
   filepath: data/model_outputs.parquet

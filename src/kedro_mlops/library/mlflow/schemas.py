@@ -1,13 +1,12 @@
 """Pydantic schemas to be used in the code-base"""
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class MLflowServerConfig(BaseModel):
-    tracking_uri: str | None = None
+    model_config = ConfigDict(extra="forbid")
 
-    class Config:
-        extra = "forbid"
+    tracking_uri: str | None = None
 
 
 class MLflowExperiment(BaseModel):

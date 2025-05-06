@@ -43,17 +43,20 @@ def train_model(
 ) -> BaseEstimator:
     model = load_obj(mod_params["model"]["class"])(**mod_params["model"]["kwargs"])
 
-    model.fit(train_data[selected_features], train_data[target])
+    model.fit(train_data.select(selected_features), train_data.select(target))
 
+    # Remark: because we use a DataFrame as input for fitting the model, the
+    # feature names are added to the `feature_names_in_` attribute of the model.
+    # Hence, we can use this attribute to get the feature names when doing inference.
     return model
 
 
 def get_predictions(
     data: pl.DataFrame | pl.LazyFrame,
-    selected_features: list,
     model: BaseEstimator,
 ) -> pl.DataFrame:
+    selected_features = model.feature_names_in_
     df = data.lazy().collect()
-    y_pred = model.predict_proba(df[selected_features])[:, 1]
+    y_pred = model.predict_proba(df.select(selected_features))[:, 1]
 
     return df.with_columns(predictions=pl.Series("y_pred", y_pred))

@@ -997,7 +997,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "kedro", specifier = ">=0.19.12" },
-    { name = "kedro-datasets", extras = ["polars"], specifier = ">=6.0.0" },
+    { name = "kedro-datasets", extras = ["json", "polars"], specifier = ">=6.0.0" },
     { name = "matplotlib", specifier = ">=3.10.1" },
     { name = "mlflow-skinny", specifier = ">=2.21.3" },
     { name = "pandas", extras = ["aws"], specifier = ">=2.2.3" },
