@@ -82,7 +82,7 @@ def test_after_pipeline_run(mock_end_run, mlflow_hook, mock_context):
     mlflow_hook.after_context_created(mock_context)
     mlflow_hook.run_id = "test_run_id"
 
-    mlflow_hook.after_pipeline_run()
+    mlflow_hook.after_pipeline_run(None, None)
 
     mock_end_run.assert_called_once()
 

@@ -4,8 +4,11 @@ from pathlib import Path
 import mlflow
 from kedro.framework.context import KedroContext
 from kedro.framework.hooks import hook_impl
+from kedro.io import DataCatalog
+from kedro.pipeline import Pipeline
 from mlflow.entities import RunStatus
 
+from kedro_mlops.library.mlflow.models import KedroModel
 from kedro_mlops.library.mlflow.schemas import MLflowConfig
 
 logger = logging.getLogger(__name__)
@@ -120,8 +123,13 @@ class MlflowHook:
             logger.info(f"Active run: {mlflow.active_run().info}")
 
     @hook_impl
-    def after_pipeline_run(self) -> None:
+    def after_pipeline_run(
+        self,
+        pipeline: Pipeline,
+        catalog: DataCatalog,
+    ) -> None:
         """Hook to be invoked after a pipeline runs."""
+        self._log_model(pipeline, catalog)
         if not self._mlflow_disabled and self.run_id is not None:
             mlflow.end_run()
 
@@ -161,6 +169,21 @@ class MlflowHook:
             experiment_id = mlflow_experiment.experiment_id
 
         return experiment_id
+
+    def _log_model(self, pipeline: Pipeline, catalog: DataCatalog) -> None:
+        """Log the model to MLflow."""
+        if mlflow.active_run() is not None:
+            inference_pipeline = pipeline.filter(tags=["inference"])
+            model = KedroModel(pipeline=inference_pipeline, catalog=catalog)
+
+            artifacts = model.get_artifacts()
+
+            mlflow.pyfunc.log_model(
+                artifact_path="fitted_model",
+                python_model=model,
+                artifacts=artifacts,
+                conda_env=model.get_conda_env(),
+            )
 
     @staticmethod
     def _assert_mlflow_enabled(pipeline_name: str, mlflow_config: MLflowConfig) -> bool:
