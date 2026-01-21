@@ -1,7 +1,7 @@
 lint:
 	pre-commit run -a --hook-stage manual $(hook)
 test:
-	uv run python -m pytest src/tests/
+	uv run pytest src/tests/
 
 integration-test:
 	uv run kedro run --env=test --pipeline=mod_linear_regression_training_pipeline

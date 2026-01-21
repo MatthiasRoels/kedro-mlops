@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from src.kedro_mlops.library.evaluation.plotting import (
+from kedro_mlops.library.evaluation.plotting import (
     plot_confusion_matrix,
     plot_correlation_matrix,
     plot_pr_curve,

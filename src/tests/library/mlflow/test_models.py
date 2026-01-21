@@ -5,7 +5,7 @@ from kedro.io import DataCatalog, MemoryDataset
 from kedro.pipeline import Pipeline
 from kedro_datasets.pickle import PickleDataset
 
-from src.kedro_mlops.library.mlflow.models import KedroModel
+from kedro_mlops.library.mlflow.models import KedroModel
 
 
 @pytest.fixture

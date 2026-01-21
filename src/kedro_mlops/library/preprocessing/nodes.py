@@ -150,7 +150,7 @@ def prepare_train_data(
     train_data = data.filter(pl.col("split") == "train").select(
         [
             cname
-            for cname in data.columns
+            for cname in data.collect_schema().names()
             if cname.endswith("_enc") or cname == target_column
         ]
     )

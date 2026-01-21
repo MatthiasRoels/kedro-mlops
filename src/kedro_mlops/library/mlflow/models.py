@@ -1,3 +1,4 @@
+from copy import copy
 from pathlib import Path
 from sys import version_info
 
@@ -62,7 +63,7 @@ class KedroModel(PythonModel):
             self.runner = runner
 
         self.catalog.save(
-            name=self.input_dataset_name,
+            ds_name=self.input_dataset_name,
             data=model_input,
         )
 
@@ -98,10 +99,10 @@ class KedroModel(PythonModel):
                 f"\n    - 'inference.inputs() - artifacts' = : {in_inference_but_not_artifacts}"
             )
 
-        updated_catalog = self.catalog_artifacts.shallow_copy()
+        updated_catalog = copy(self.catalog_artifacts)
         for name, uri in context.artifacts.items():
             updated_catalog._datasets[name]._filepath = Path(uri)  # noqa: SLF001
-            self.catalog.save(name=name, data=updated_catalog.load(name))
+            self.catalog.save(ds_name=name, data=updated_catalog.load(name))
 
     def _get_artifact_catalog(self, catalog: DataCatalog) -> DataCatalog:
         """Get a catalog of artifacts to be logged to MLflow."""
@@ -118,7 +119,7 @@ class KedroModel(PythonModel):
 
             metadata = dataset.metadata or {}
             if metadata.get("mlflow", {}).get("is_model_artifact", False):
-                artifact_catalog.add(dataset_name=dataset_name, dataset=dataset)
+                artifact_catalog[dataset_name] = dataset
 
         return artifact_catalog
 

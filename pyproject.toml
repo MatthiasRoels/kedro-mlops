@@ -22,7 +22,7 @@ kedro-mlops = "kedro_mlops.__main__:main"
 [tool.kedro]
 package_name = "kedro_mlops"
 project_name = "kedro-mlops"
-kedro_init_version = "0.19.12"
+kedro_init_version = "1.1.1"
 tools = [ "Linting", "Testing", "Data Structure", "Kedro Viz",]
 example_pipeline = "False"
 source_dir = "src"

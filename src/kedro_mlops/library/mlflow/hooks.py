@@ -45,7 +45,8 @@ class MlflowHook:
             tracking_uri = self.mlflow_config.server.tracking_uri
 
             if tracking_uri is None:
-                tracking_uri = (Path(context.project_path) / "data" / "mlruns").as_uri()
+                path = str(Path(context.project_path) / "data" / "mlflow.db")
+                tracking_uri = f"sqlite:///{path}"
 
             self._mlflow_client = mlflow.MlflowClient(
                 tracking_uri=tracking_uri,
@@ -111,7 +112,7 @@ class MlflowHook:
                     run_id=self.run_id,
                     nested=True,
                 )
-                logger.info(
+                logger.debug(
                     f"Restarting mlflow run '{mlflow.active_run().info.run_name}' - '{self.run_id}' at node level for multi-threading"
                 )
             except Exception as err:  # pragma: no cover
@@ -120,7 +121,7 @@ class MlflowHook:
                     pass
                 else:
                     raise err
-            logger.info(f"Active run: {mlflow.active_run().info}")
+            logger.debug(f"Active run: {mlflow.active_run().info}")
 
     @hook_impl
     def after_pipeline_run(
@@ -179,7 +180,7 @@ class MlflowHook:
             artifacts = model.get_artifacts()
 
             mlflow.pyfunc.log_model(
-                artifact_path="fitted_model",
+                name="fitted_model",
                 python_model=model,
                 artifacts=artifacts,
                 conda_env=model.get_conda_env(),
